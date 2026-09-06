@@ -1,0 +1,51 @@
+{
+  "timestamp": "20260808T040625Z",
+  "variant": "n6b_confused_large.py",
+  "candidates": 400,
+  "levels": {
+    "15.0": [
+      {
+        "salt": "",
+        "strictness": 15.0,
+        "returned": 400,
+        "findings": 334,
+        "score": 10.02,
+        "score_raw": 2004.0,
+        "unique_cells": 334,
+        "interactions": 400,
+        "runtime_s": 34.8
+      },
+      {
+        "salt": "1",
+        "strictness": 15.0,
+        "returned": 400,
+        "findings": 312,
+        "score": 9.36,
+        "score_raw": 1872.0,
+        "unique_cells": 312,
+        "interactions": 400,
+        "runtime_s": 8.66
+      },
+      {
+        "salt": "2",
+        "strictness": 15.0,
+        "returned": 400,
+        "findings": 321,
+        "score": 9.629999999999999,
+        "score_raw": 1926.0,
+        "unique_cells": 321,
+        "interactions": 400,
+        "runtime_s": 7.77
+      }
+    ]
+  },
+  "headline_strictness": 15.0,
+  "replay_budget": {
+    "interactions": 400.0,
+    "est_s_4s": 1600.0,
+    "util_pct_4s": 17.77777777777778,
+    "partial_score_4s": 9.67,
+    "pass_score": 80.0,
+    "verdict": "GO"
+  }
+}

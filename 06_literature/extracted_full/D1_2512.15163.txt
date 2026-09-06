@@ -1,0 +1,2105 @@
+
+
+----- [page 1] -----
+Published as a conference paper at ICLR 2026
+MCP-SAFETYBENCH: A BENCHMARK FOR SAFETY
+EVALUATION OF LARGE LANGUAGE MODELS WITH REAL-
+WORLD MCP SERVERS
+Xuanjun Zong1∗
+Zhiqi Shen2∗
+Lei Wang3†
+Yunshi Lan1†
+Chao Yang4
+1East China Normal University
+2Salesforce AI Research
+3Singapore Management University
+4Shanghai AI Laboratory
+xjzong@stu.ecnu.edu.cn zhiqi.shen@salesforce.com
+lei.wang.2019@phdcs.smu.edu.sg yslan@dase.ecnu.edu.cn yangchao@pjlab.org.cn
+ABSTRACT
+Large language models (LLMs) are evolving into agentic systems that reason, plan, and
+operate external tools. The Model Context Protocol (MCP) is a key enabler of this tran-
+sition, offering a standardized interface for connecting LLMs with heterogeneous tools
+and services. Yet MCP’s openness and multi-server workflows introduce new safety risks
+that existing benchmarks fail to capture, as they focus on isolated attacks or lack real-world
+coverage. We present MCP-SafetyBench, a comprehensive benchmark built on real MCP
+servers that supports realistic multi-turn evaluation across five domains—browser automa-
+tion, financial analysis, location navigation, repository management, and web search.
+It incorporates a unified taxonomy of 20 MCP attack types spanning server, host, and
+user sides, and includes tasks requiring multi-step reasoning and cross-server coordi-
+nation under uncertainty. Using MCP-SafetyBench, we systematically evaluate leading
+open- and closed-source LLMs, revealing that all models remain vulnerable to MCP at-
+tacks, with a notable safety-utility trade-off. Our results highlight the urgent need for
+stronger defenses and establish MCP-SafetyBench as a foundation for diagnosing and
+mitigating safety risks in real-world MCP deployments. Our benchmark is available at
+https://github.com/xjzzzzzzzz/MCPSafety.
+1
+INTRODUCTION
+Figure 1: Defense Success Rate vs. Task Success Rate
+by Model. The plot reveals the relationship between
+model robustness and task performance.
+Large language models (LLMs) are rapidly evolv-
+ing from passive text generators (Brown et al.,
+2020; Ouyang et al., 2022) into agentic systems ca-
+pable of reasoning, planning, and operating exter-
+nal tools (DeepSeek-AI et al., 2025a; Yao et al.,
+2023; Zai, 2025; Moonshot, 2025; OpenAI, 2025b;
+Anthropic, 2024). A key driver of this shift is the
+Model Context Protocol (MCP) (Anthropic, 2024),
+which standardizes how LLMs connect to tools,
+data sources, and services. By abstracting and uni-
+fying API calls, MCP enables agents to dynam-
+ically discover and invoke tools across heteroge-
+∗Equal contribution.
+†Corresponding authors.
+1
+arXiv:2512.15163v2 [cs.CL] 5 Mar 2026
+
+
+----- [page 2] -----
+Published as a conference paper at ICLR 2026
+Figure 2: MCP workflow under an attack scenario. A Tool Poisoning – Parameter Poisoning attack (ticker
+→TSLA) is injected during the tool call, shown here in a partial execution result under GPT-4o.
+neous servers and environments. This design greatly reduces integration complexity and has accelerated
+the widespread adoption of MCP in both academia and industry (OpenAI; Cline; Cursor; Google).
+However, the openness and extensibility of MCP introduce new safety risks (Hou et al., 2025). For example,
+attackers can embed malicious instructions in tool metadata or descriptions, misleading models during tool
+invocation (Beurer-Kellner & Fischer, 2025). Attackers can also poison context during cross-server propa-
+gation (e.g., context poisoning), leading to persistent chain contamination (Croce & South, 2025). Moreover,
+malicious servers with high privileges can trigger unauthorized actions or exfiltrate sensitive data (Jing et al.,
+2025). As the MCP ecosystem scales to thousands of third-party servers, these risks are no longer hypothet-
+ical but represent concrete obstacles to safe deployment.
+Several benchmarks have been proposed to assess these risks in MCP systems.
+While existing MCP
+safety benchmarks such as SHADE-Arena (Kutasov et al., 2025), SafeMCP (Fang et al., 2025), MCP-
+Tox (Wang et al., 2025a), MCIP-Bench (Jing et al., 2025), MCP-AttackBench (Xing et al., 2025), and
+MCPSecBench (Yang et al., 2025b) have provided valuable foundations for studying MCP attacks, most
+of them either focus narrowly on specific attack types or lack integration with realistic MCP servers. In
+particular, they fall short of capturing the multi-turn reasoning, real-world integration, and diverse threat
+dynamics that characterize practical MCP-based deployments.
+In this paper, we present MCP-SafetyBench, a comprehensive benchmark designed to systematically eval-
+uate the robustness of LLM Agents against MCP attacks. Built on the MCP-Universe benchmark (Luo et al.,
+2025), MCP-SafetyBench provides tasks that reflect realistic scenarios and multi-turn reasoning workflows,
+filling critical gaps in existing evaluations. Our proposed benchmark covers five representative domains:
+browser automation, financial analysis, location navigation, repository management, and web search. It fur-
+2
+
+
+----- [page 3] -----
+Published as a conference paper at ICLR 2026
+Table 1: Comparative Analysis of Existing MCP Safety Benchmarks
+Benchmark
+Real-World
+Integration
+Multi-Step
+Tasks
+MCP Server
+Attack
+MCP Host
+Attack
+MCP User
+Attack
+Attack
+Types
+Domains
+SafeMCP (Fang et al., 2025)
+×
+✓
+✓
+×
+×
+2
+10
+MCPTox (Wang et al., 2025a)
+✓
+×
+✓
+×
+×
+11
+45
+MCIP-bench (Jing et al., 2025)
+×
+×
+✓
+✓
+×
+10
+-
+MCP-AttackBench (Xing et al., 2025)
+×
+×
+✓
+×
+✓
+10
+-
+MCPSecBench (Yang et al., 2025b)
+×
+×
+✓
+✓
+✓
+17
+-
+MCP-SafetyBench (Ours)
+✓
+✓
+✓
+✓
+✓
+20
+5
+ther encompasses 20 distinct attack types across the MCP server, host, and user sides. Unlike prior bench-
+marks limited to one-shot tool use, MCP-SafetyBench captures the inherently multi-turn nature of real-world
+scenarios, where attacks can emerge at any step of the interaction. Figure 2 illustrates a attack Tool Poison-
+ing – Parameter Poisoning case. The user requests JNJ holdings, but the tool manifest silently rewrites the
+ticker to TSLA, causing the agent to plan correctly yet execute on the wrong target. The task is marked Fail
+by the task evaluator and Success by the attack evaluator, demonstrating how MCP-SafetyBench exposes
+hidden vulnerabilities in realistic multi-turn MCP-based workflows. The tasks in our MCP-SafetyBench are
+real-world tasks, requiring models to perform multi-step reasoning and coordinate across multiple servers
+under uncertain conditions. MCP-SafetyBench further includes 20 distinct attack types spanning the MCP
+server, MCP host, and user levels.
+We conduct a systematic evaluation of both open-source and proprietary LLMs on MCP-SafetyBench.
+Figure 1 shows a clear negative trend between Defense Success Rate and Task Success Rate, indicating that
+no model achieves both strong task performance and robust defense. In our experiment section, we further
+reveal substantial disparities in safety resilience and variable attack effectiveness—with host-side attacks
+achieving the highest attack success rate. These results demonstrate that MCP agents face serious and
+escalating safety risks, underscoring the urgent need for stronger defenses. MCP-SafetyBench thus provides
+a solid foundation for diagnosing safety challenges in the rapidly expanding MCP ecosystem.
+In summary, our contributions are as follows: 1) We develop a unified taxonomy of 20 MCP attack types that
+consolidates prior work and clarifies key attack categories; 2) We build MCP-SafetyBench, a benchmark
+based on this taxonomy and real-world MCP servers, supporting realistic multi-step safety evaluation across
+five domains; 3) We systematically evaluate leading open-source and proprietary LLMs, revealing large
+differences in safety performance across models and variable effectiveness among different attack types.
+2
+RELATED WORK
+Model Context Protocol. The Model Context Protocol (MCP), introduced by Anthropic in late 2024, stan-
+dardizes interaction between AI agents and external tools (Anthropic, 2024). Built on JSON-RPC 2.0 over
+STDIO and SSE, MCP addresses the long-standing “data silo” problem by allowing agents to dynamically
+discover, select, and orchestrate tools according to task context (Edwin, 2025). It adopts a three-layer ar-
+chitecture: Host (LLM agent), Client (message bridge managing user interaction), and Servers (tool and
+resource providers) (Anthropic, 2024). In practice, the Host connects to Servers via the Client, registers tool
+metadata, invokes tools, and synthesizes results into final outputs.
+Attack Vectors in MCP. While MCP extends agent capability, it also creates new security exposures (Guo
+et al., 2025). Invariant Labs (Beurer-Kellner & Fischer, 2025) introduced Tool Poisoning Attacks, where ma-
+licious metadata or instructions inside tool descriptions manipulate agent behavior. They further proposed
+Shadowing Attacks, in which malicious servers override trusted tools, and MCP Rug Pulls, where benign
+tools are later updated with harmful logic. Follow-up work broadened the surface:
+Wang et al. (2025b)
+demonstrated Preference Manipulation Attacks, biasing tool choice through persuasive descriptions. Rado-
+sevich & Halloran (2025) proposed four attack types: Malicious Code Execution, Remote Access Control,
+Credential Theft, and Retrieval-Agent Deception.
+Hou et al. (2025) organized these risks into a lifecycle
+3
+
+
+----- [page 4] -----
+Published as a conference paper at ICLR 2026
+Table 2: Comparative Coverage of Attack Types Across MCP Safety Benchmarks
+Attack Type
+SafeMCP MCPTox MCIP-
+bench
+MCP-
+AttackBench
+MCP
+SecBench Ours Definition
+MCP Server
+Tool Poisoning-Parameter Poisoning
+✓
+✓
+×
+✓
+×
+✓
+Modify tool parameters in tool descriptions
+Tool Poisoning-Command Injection
+×
+✓
+×
+✓
+×
+✓
+Embed shell commands in tool descriptions
+Tool Poisoning-FileSystem Poisoning
+×
+✓
+×
+×
+×
+✓
+Embed malicious file operations in tool descriptions
+Tool Poisoning-Tool Redirection
+×
+✓
+✓
+×
+×
+✓
+Redirect tool calls to other tools
+Tool Poisoning-Network Request Poisoning
+×
+✓
+×
+×
+×
+✓
+Inject unsafe URLs in tool descriptions
+Tool Poisoning-Function Dependency Injection
+×
+✓
+✓
+✓
+×
+✓
+Declare fake dependent tools in tool descriptions
+Function Overlapping
+×
+×
+✓
+×
+✓
+✓
+Malicious tools use similar names to trusted ones
+Preference Manipulation
+×
+×
+×
+×
+✓
+✓
+Use biased wording to influence tool selection
+Tool Shadowing
+×
+×
+✓
+×
+✓
+✓
+Inject tools that modify other tools’ behavior
+Function Return Injection
+✓
+×
+×
+×
+×
+✓
+Embed unsafe instructions in tool return values
+Rug Pull Attack
+×
+×
+×
+×
+✓
+✓
+Tool behavior changes with version
+MCP Host
+Intent Injection
+×
+×
+✓
+×
+✓
+✓
+Alter user intent
+Data Tampering
+×
+×
+✓
+×
+×
+✓
+Modify tool outputs or intermediate messages
+Identity Spoofing
+×
+×
+✓
+×
+×
+✓
+Forge identity metadata
+Replay Injection
+×
+×
+✓
+×
+×
+✓
+Replay previous interactions
+User
+Malicious Code Execution
+×
+×
+×
+×
+✓
+✓
+User input causes tools to execute harmful commands
+Credential Theft
+×
+×
+×
+✓
+✓
+✓
+Extract sensitive credentials via tools
+Remote Access Control
+×
+×
+×
+×
+×
+✓
+Gain persistent unauthorized access through tools
+Retrieval-Agent Deception
+×
+×
+×
+×
+✓
+✓
+Poison public data sources retrieved by agents
+Excessive Privileges Misuse
+×
+×
+×
+×
+×
+✓
+Use high-privilege tools for low-privilege tasks
+taxonomy, covering threats like Tool Name Conflict and Sandbox Escape.
+Jing et al. (2025) further cat-
+egorized these risks by source, scope, and type, encompassing client-side attacks: Intent Injection, Data
+Injection, Identity Injection, and Replay Injection. Despite these advances, most studies remain narrow, and
+their applicability to realistic multi-step, multi-server MCP deployments is still unclear.
+MCP Safety Benchmarks. Recent benchmarks explore MCP security from different angles. SHADE-
+Arena (Kutasov et al., 2025) studies sabotage behaviors in virtual environments. SafeMCP (Fang et al.,
+2025) evaluates third-party service risks with both passive and active defenses. MCPTox (Wang et al.,
+2025a) focuses on tool poisoning vulnerabilities. MCIP-bench (Jing et al., 2025) builds a taxonomy-driven
+dataset from function-calling corpora, and MCP-AttackBench (Xing et al., 2025) scales adversarial testing
+with 70k+ attack samples. MCPSecBench (Yang et al., 2025b) provides a benchmark covering seventeen
+representative attacks across user, host, transport, and server layers. In contrast, our MCP-SafetyBench
+centers on real-world MCP servers, supports multi-step and multi-server interactions, and covers twenty
+attack types across five domains for a more realistic and comprehensive safety evaluation. Table 1 compares
+these benchmarks in attack coverage, domains, and evaluation settings.
+Positioning within Broader Safety Frameworks. Existing safety evaluation frameworks for large language
+models and agents are becoming increasingly rich. MCP-SafetyBench applies these broader theories and
+methods to real MCP environments, allowing systematic evaluation of different attack strategies in practical
+scenarios. It instantiates threats in the deployment-stage from OTM (Verma et al., 2024) and maps its tax-
+onomy to MCP-specific threats: user-side attacks correspond to OTM’s Application Input Layer, server-side
+attacks correspond to the Context Data Layer, and host-side vulnerabilities correspond to internal logic at-
+tacks. The benchmark covers OTM’s CIAP security dimensions, including confidentiality (credential theft),
+integrity (tool poisoning), availability (rug pull attack), and privacy (unintended data access or leakage). In
+addition, MCP-SafetyBench complements evaluations of agent behavior and tool calling (Feffer et al., 2024;
+Nakash et al., 2025), focusing on actual risks during task execution rather than static prompt-based tests.
+3
+MCP-SAFETYBENCH
+3.1
+OVERVIEW
+To address the gap in realistic safety evaluation for LLM agents, we introduce MCP-SafetyBench, a com-
+prehensive benchmark designed to evaluate the robustness of LLM agents interacting with real MCP servers
+4
+
+
+----- [page 5] -----
+Published as a conference paper at ICLR 2026
+in multi-step, tool-using tasks. Unlike prior one-shot or simulated evaluations (Fang et al., 2025; Wang
+et al., 2025a; Jing et al., 2025; Xing et al., 2025; Yang et al., 2025b), it targets security risks in ReAct-
+style agents (Yao et al., 2023) and it is built upon three core principles: realism, ensuring tasks mirror
+real-world applications; coverage, systematically targeting vulnerabilities across the entire MCP stack; and
+reproducibility, enabling deterministic, execution-based evaluation. Our proposed benchmark enables sys-
+tematic assessment along two key dimensions: task success, which measures whether the user’s goal is
+achieved, and attack success, which determines if the attacker’s objective is realized, either through disrup-
+tion or stealth.
+3.2
+MCP ATTACK TAXONOMY
+To construct a comprehensive benchmark to test MCP-based systems, we propose a compact taxonomy
+of MCP vulnerabilities grouped by three perspectives: MCP Server, MCP Host, and User. To keep the
+presentation concise, detailed definitions and illustrative examples are deferred to Appendix A. Table 2
+summarizes coverage across prior benchmarks and our MCP-SafetyBench.
+MCP Server-Side Attacks
+Scope. Servers expose tools, prompts, and metadata; tampering compromises tool integrity and hidden logic.
+Representative Types. Tool Poisoning (parameter, command, filesystem, redirection, network, dependency);
+Function Overlapping; Preference Manipulation; Tool Shadowing; Function Return Injection; Rug Pull Attack
+MCP Host-Side Attacks
+Scope. The host plans and orchestrates multi-tool workflows; attacks aim to hijack planning or message routing.
+Representative Types. Intent Injection; Data Tampering; Identity Spoofing; Replay Injection
+User-Side Attacks
+Scope. Users provide prompts, files, or external data; malicious inputs can induce execution of harmful code or
+leakage of secrets.
+Representative Types. Malicious Code Execution; Credential Theft; Remote Access Control; Retrieval-Agent
+Deception; Excessive Privileges Misuse
+3.3
+BENCHMARK DESIGN AND CONSTRUCTION
+Figure 3: Overall pipeline of MCP-
+SafetyBench with task construc-
+tion, execution, and evaluation.
+MCP-SafetyBench is constructed through a three-stage process that
+transforms standard tasks from the MCP-Universe benchmark (Luo
+et al., 2025) into robust security test cases. This process yields attack-
+instrumented tasks across five domains, including browser automa-
+tion, financial analysis, location navigation, repository management,
+and web search. Each task is paired with exactly one MCP-layer at-
+tack drawn from our taxonomy, enabling controlled evaluation of both
+correctness and security outcomes. As shown in Figure 3, the con-
+struction process involves three steps:
+Step 1: Task Selection. We select tasks from five domains in MCP-
+Universe and adapt their original goals and contexts to serve as clean
+baselines. Each baseline task preserves its formal elements, including
+5
+
+
+----- [page 6] -----
+Published as a conference paper at ICLR 2026
+Figure 4: Attack distribution in MCP-SafetyBench: Left—by strategy (disruption attack 46.53% vs. stealth
+attack 53.47%); Right—by side (server 74.69%, host 12.24%, user 13.06%). This breakdown illustrates that
+server-side vulnerabilities account for most of the observed attacks.
+goal (G), context (C), and available tools (Tavailable), as well as is paired with a machine-checkable output
+schema to enable automated correctness evaluation.
+Step 2: Attack Instantiation. Each baseline task is paired with one attack modification A from the tax-
+onomy, instantiated on the appropriate side: 1) Server side: using “mcp server modifications” that alter
+tool manifests or implementations (e.g., parameter poisoning, function-return injection); 2) Host side: by
+modifying the host pipeline (e.g., intent rewriting, replay, identity spoofing); 3) User side: by embedding
+prompt-injection fragments directly into the user’s query. Attack examples are generated through a concise
+generate-and-verify pipeline: we write compact templates, use Cursor to synthesize candidate instantiations,
+and retain only those that pass human review for plausibility and feasibility.
+Step 3:
+Task Formalization and Packaging.
+Finally, each task is formalized as a tuple τ
+=
+(G, C, Tavailable, A) where A represents the injected attack. Each task is packaged into a manifest con-
+taining the category (Disruption / Stealth), the user query, output schema, attack metadata (type, description,
+version), and associated evaluators.
+3.4
+BENCHMARK STATISTICS
+Table 3: The statistics of MCP-SafetyBench.
+# Number
+Domain
+Cases
+01
+Financial Analysis
+53
+02
+Location Navigation
+53
+03
+Repository Management
+56
+04
+Browser Automation
+30
+05
+Web Search
+53
+–
+Total
+245
+Through the above construction process, we obtain 245 dis-
+tinct test examples distributed across five representative real-
+world domains, as detailed in Table 3. To ensure a com-
+prehensive evaluation, we provide balanced coverage across
+most domains: Financial Analysis (53 cases), Location Nav-
+igation (53 cases), Repository Management (56 cases), and
+Web Search (53 cases). The Browser Automation domain
+includes 30 cases due to the higher complexity involved in
+constructing these interactive tasks.
+The distribution of attacks within the benchmark is designed to mirror realistic threat landscapes, as illus-
+trated in Figure 4. Our analysis focuses on two key dimensions: attack source and attack strategy.
+6
+
+
+----- [page 7] -----
+Published as a conference paper at ICLR 2026
+Attack Strategy. As shown in the left panel of Figure 4, the benchmark is nearly evenly split between
+two primary strategies: Disruption attacks (46.53%), which aim to cause task failure, and Stealth attacks
+(53.47%), which aim to achieve a malicious goal without alerting the user. The slight prevalence of stealth
+attacks highlights a more insidious class of threats, where an agent might report task success while having
+been silently compromised (e.g., leaking data or producing incorrect results). Among the most frequent
+attack types are various forms of Tool Poisoning (e.g., Command Injection at 12.65%) and Function Over-
+lapping (9.39%), underscoring the risks tied to manipulated tool metadata and selection ambiguity.
+Attack Source. The benchmark places a strong emphasis on server-side vulnerabilities. As shown in the
+right panel of Figure 4, a significant majority of attacks (74.69%) originate from the MCP Server. This design
+choice reflects a common real-world scenario where agentic systems must interact with and trust numerous
+third-party tools, making server-side threats the most prevalent and critical attack vector. Attacks originating
+from the User (13.06%) and the MCP Host (12.24%) represent smaller but still important portions of the
+benchmark.
+3.5
+EVALUATION
+Following MCP-Universe, evaluation in MCP-SafetyBench is fully automated and execution-based, provid-
+ing deterministic ground truth. Each task τ is paired with evaluators E = {Etask, Eattack}:
+Task evaluator (Etask): inherited from MCP-Universe, including format, static, and dynamic checks.
+Attack evaluator (Eattack): A suite of detectors newly introduced in our benchmark, each designed to check
+for the success signature of specific attacks, such as check parameter modification attack,
+check command injection attack, and check replay injection attack.
+Given an execution trace R, the evaluation framework produces a dual-label outcome:
+E(R)
+=
+ success(G), attack success(A)
+
+, where success(G) indicates whether the user goal was achieved and
+attack success(A) whether the attack objective was realized.
+Each benchmark case is executed with a standardized MCP pipeline and a ReAct-style agent. The protocol
+is standardized: (1) The environment is configured, and the specified attack is injected. (2) The agent
+executes the task based on the user query, and its full trace is logged. (3) Both the task and attack evaluators
+are run on the trace. (4) The final output includes a Task Outcome (Pass/Fail) and an Attack Outcome
+(Success/Failure), which are used to compute aggregate metrics like Task Success Rate (TSR) and Attack
+Success Rate (ASR).
+4
+EXPERIMENT
+4.1
+EXPERIMENT SETTINGS
+Agent Framework. In our experiments, we adopt the ReAct framework (Yao et al., 2023), which has
+proven to be one of the most widely used and time-tested paradigms for building agentic LLM systems.
+ReAct allows models to interleave reasoning and acting, making it particularly suitable for the multi-step,
+multi-server MCP environment.
+Models. Our evaluation includes a representative set of state-of-the-art proprietary and open-source Large
+Language Models. For proprietary models, we include OpenAI’s GPT-5 (OpenAI, 2025b), GPT-4.1 (Ope-
+nAI, 2025a), GPT-4o (OpenAI et al., 2024), o4-mini (OpenAI, 2025c), Anthropic’s Claude-4.0-Sonnet (An-
+thropic, 2025b) and Claude-3.7-Sonnet (Anthropic, 2025a), Google’s Gemini-2.5-Pro (Comanici et al.,
+2025) and Gemini-2.5-Flash (Comanici et al., 2025), and xAI’s Grok-4 (xAI, 2025). For open-source mod-
+7
+
+
+----- [page 8] -----
+Published as a conference paper at ICLR 2026
+Table 4: TSR (%) and ASR (%) on MCP-SafetyBench across domains and all tasks. Higher TSR means
+better task performance; higher ASR means greater vulnerability.
+Model
+Location
+Navigation
+Repository
+Management
+Financial
+Analysis
+Browser
+Automation
+Web
+Searching
+Overall
+TSR↑
+ASR↓
+TSR↑
+ASR↓
+TSR↑
+ASR↓
+TSR↑
+ASR↓
+TSR↑
+ASR↓
+TSR↑
+ASR↓
+Proprietary Models
+GPT-5
+5.66
+33.96
+5.36
+42.86
+32.08
+45.28
+3.33
+20.00
+28.30
+37.74
+15.92
+37.55
+GPT-4.1
+9.43
+43.40
+5.36
+53.57
+22.64
+54.72
+10.00
+46.67
+1.89
+15.09
+9.80
+42.45
+GPT-4o
+5.66
+50.94
+1.79
+48.21
+22.64
+50.94
+13.33
+50.00
+3.77
+13.21
+8.98
+42.04
+o4-mini
+18.87
+49.06
+8.93
+58.93
+39.62
+54.72
+10.00
+30.00
+24.53
+39.62
+21.22
+48.16
+Claude-3.7-Sonnet
+13.21
+37.74
+3.57
+33.93
+32.08
+35.85
+10.00
+30.00
+15.09
+26.42
+15.10
+33.06
+Claude-4.0-Sonnet
+1.89
+39.62
+3.57
+21.43
+26.42
+43.40
+6.67
+26.67
+11.32
+24.53
+10.20
+31.43
+Gemini-2.5-Pro
+11.32
+62.26
+5.36
+44.64
+49.06
+49.06
+23.33
+36.67
+15.09
+37.74
+20.41
+46.94
+Gemini-2.5-Flash
+9.43
+45.28
+10.71
+46.43
+33.96
+56.60
+3.33
+43.33
+13.21
+33.96
+15.10
+45.31
+Grok-4
+13.21
+37.74
+3.57
+46.43
+22.64
+39.62
+16.67
+30.00
+24.53
+43.40
+15.92
+40.41
+Open-Source Models
+GLM-4.5
+9.43
+47.17
+8.93
+41.07
+41.51
+50.94
+6.67
+43.33
+20.75
+32.08
+18.37
+42.86
+Kimi-K2
+9.43
+33.96
+8.93
+37.50
+37.74
+43.40
+3.33
+36.67
+7.55
+35.85
+14.29
+37.55
+Qwen3-235B
+7.55
+32.08
+3.57
+30.36
+24.53
+33.96
+13.33
+30.00
+3.77
+22.64
+10.20
+29.80
+DeepSeek-V3.1
+15.09
+45.28
+7.14
+35.71
+35.85
+47.17
+20.00
+46.67
+20.75
+32.08
+19.59
+40.82
+els, we consider Zhipu’s GLM-4.5 (Zai, 2025), Moonshot’s Kimi-K2 (Moonshot, 2025), Qwen’s Qwen3-
+235B (Yang et al., 2025a), and DeepSeek’s DeepSeek-V3.1 (DeepSeek-AI et al., 2025b).
+Benchmark and Metrics. We evaluate all models on our proposed MCP-SafetyBench, which spans five
+practical domains: location navigation, repository management, financial analysis, browser automation, and
+web searching. All models were run under a unified configuration: temperature 1.0, maximum output length
+2048 tokens, per-call timeout 60 seconds, maximum 20 ReAct iterations per task, and 3 repetitions per task.
+No additional runtime or cost constraints were imposed. We measure model vulnerability using the Attack
+Success Rate (ASR), defined as the percentage of tasks in which an attack successfully compromises the
+agent’s intended behavior. A higher ASR indicates weaker resilience to attacks.
+4.2
+RESULTS
+Figure 5:
+Evaluation of 13 LLMs on MCP-
+SafetyBench across five real-world domains.
+All LLMs remain vulnerable to MCP attacks. Ta-
+ble 4 presents the performance of leading LLMs
+on MCP-SafetyBench across five domains, reporting
+both TSR and ASR. The results reveals that no model
+is immune to security threats within the MCP envi-
+ronment. The overall ASR is substantial across the
+board, ranging from 29.80% for Qwen3-235B to a
+high of 48.16% for o4-mini. This demonstrates that
+even the most advanced models face significant safety
+challenges in realistic, multi-step agentic tasks.
+A safety-utility trade-off may exist. The results show
+a clear negative correlation between task success rate
+(TSR) and defense success rate (DSR = 1 - ASR), in-
+dicating a pronounced safety-utility trade-off. Quan-
+titatively, the Pearson correlation coefficient across all evaluated models is r = −0.572 (p = 0.041), con-
+firming that models with higher task performance tend to be less resistant to attacks. For example, o4-mini
+achieves the highest TSR (21.22%) but a relatively low DSR (51.84%), whereas Qwen3-235B shows a lower
+TSR (10.20%) but a higher DSR (70.20%). Qualitatively, this trade-off likely arises from a tension between
+8
+
+
+----- [page 9] -----
+Published as a conference paper at ICLR 2026
+Figure 6: Comparison of average ASR between rea-
+soning and non-reasoning models.
+Figure 7:
+Comparison of average ASR between
+open-source and proprietary models.
+instruction-following capability and safety awareness. High-performing models are heavily optimized for
+precise execution of tool calls, which makes them more likely to follow instructions indiscriminately, in-
+cluding potentially malicious ones. Conversely, models with lower task performance may exercise more
+conservative behavior, exhibiting higher resistance to manipulative inputs.
+Vulnerability varies significantly across domains. Figure 5 shows model performance across five domains.
+Models are especially vulnerable in Financial Analysis, with an average ASR of 46.59%. For example,
+Gemini-2.5-Flash reaches 56.60%. We believe Financial Analysis is particularly vulnerable because models
+achieve higher task success rates even without attacks, resulting in longer tool-use trajectories that provide
+more opportunities for attacks to hijack or redirect critical operations. In contrast, Web Search shows a
+significantly lower ASR of 30.33%, likely because information retrieval offers a less complex action space
+for attackers than domains requiring state changes or complex data manipulation. A one-way ANOVA
+confirms that ASR varies significantly across domains (F = 6.68, p = 0.000163, η2 = 0.308). Pairwise
+comparisons indicate that Financial Analysis has a significantly higher ASR than the mean of the other
+domains (∆= +8.82%, p = 0.000010, Cohen’s d = 1.87), while Web Search has a significantly lower
+ASR (∆= −11.50%, p = 0.002559, Cohen’s d = −0.95). See Appendix B.2 for more pairwise statistics.
+Reasoning vs. Non-reasoning Models. As shown in Figure 6, reasoning and non-reasoning models have
+broadly similar attack success rates. For example, Financial Analysis 46.7% vs. 46.4%, and Web Search
+29.7% vs. 31.3%. Browser Automation shows a larger gap (34.2% vs. 40.0%), but others (e.g., Location
+Navigation, Repository Management) show the opposite or minor differences. Statistical analysis shows
+no significant difference in ASR between reasoning and non-reasoning models: a two-sample t-test yields
+p = 0.7778, a Mann–Whitney U test yields p = 0.8835, and the effect size is |d| = 0.1648.
+Open-source vs. Proprietary Models. Figure 7 shows mixed patterns when comparing open-source and
+proprietary models. Closed-source models outperform open-source models in Location Navigation (44.4%
+vs. 39.6%), Financial Analysis (47.8% vs. 43.9%), and Repository Management (44.0% vs. 36.2%), whereas
+open-source models slightly outperform in Browser Automation (39.2% vs. 35.2%) and show comparable
+performance in Web Search (30.7% vs. 30.2%). These fluctuations indicate that whether a model is open-
+source or closed-source does not systematically determine its robustness. Statistical analysis also confirms
+that there is no systematic difference in ASR between open-source and proprietary models: a two-sample
+t-test yields p = 0.4008, a Mann–Whitney U test yields p = 0.4398, and the effect size is |d| = 0.5252.
+Analysis of Attack Success Rates by Type. We break down all attacks across 20 attack types to analyze
+LLM vulnerabilities in MCP systems. Host-side attacks consistently yield extremely high attack success
+rates, with an average success rate of 81.94%, exposing critical flaws in intent parsing and state manage-
+9
+
+
+----- [page 10] -----
+Published as a conference paper at ICLR 2026
+ment. Notably, Identity Injection achieves 100% success rate across all 13 tested models, demonstrating
+a universal vulnerability. Tool-poisoning attacks exhibit substantial internal variation: Tool Redirection
+achieves a 70.63% success rate. In contrast, other tool-poisoning attacks have an average ASR of only
+19.05%, indicating that models demonstrate stronger defensive capabilities against most tool-poisoning at-
+tacks. Additionally, models also exhibit strong defensive capabilities against Remote Access Control attacks
+(13.08% ASR). However, 76.9% of models (10 out of 13) exhibit spiky defense characteristics—strong re-
+sistance to certain attack types (e.g., Network Request Poisoning, File System Poisoning) but significant
+vulnerability to others (e.g., Identity Injection, Intent Injection)—rather than uniformly strong defensive
+capabilities, highlighting the security challenges faced by MCP systems. Detailed results are provided in
+Appendix B.3.
+4.3
+SAFETY-PROMPT MITIGATION FOR MCP ATTACKS
+Existing work has shown that prompt optimization can reduce harmful model outputs (Weidinger et al., 2021;
+Zheng et al., 2024). Motivated by this, we investigate whether a prompt-level enhancement can improve
+robustness against MCP attacks. We design a concise Safety Prompt and prepend it to user requests.
+We analyzed the effectiveness of Safety Prompt across attack types and models. Overall, Safety Prompt
+reduces the weighted ASR from 39.88% to 38.65% (-1.22%), but this improvement is not statistically sig-
+nificant (p = 0.2908, Cohen′sd = 0.31).
+Effectiveness varies by attack types: it is significant for high-risk attacks such as Malicious Code Execution
+(-21.54%, p = 0.0016), Credential Theft (-21.37%, p = 0.0027), and Remote Access Control (-10.77%,
+p = 0.0093), but ineffective or even harmful for some attacks (e.g., Preference Manipulation +7.34%,
+Function Overlapping +9.36%).
+Effectiveness also depends on the models: Safety Prompt benefits most proprietary models (e.g., Gemini,
+GPT series), whereas the open-source models show negligible or negative effects.
+These findings show that prompt-level defenses alone cannot effectively address the diverse and toolchain-
+coupled threats that arise in MCP environments, suggesting that additional defense mechanisms may be
+required. Detailed results are provided in Appendix C.
+5
+CONCLUSION
+This work introduces MCP-SafetyBench, a comprehensive benchmark for assessing the robustness of LLM
+agents in realistic, multi-step MCP environments. Grounded in a unified taxonomy of 20 attack types across
+server, host, and user sides, MCP-SafetyBench provides execution-based evaluation over five representative
+domains and enables systematic measurement of both task success and attack success. Extensive experi-
+ments on leading open- and closed-source LLMs reveal that all models remain vulnerable to MCP attacks,
+with a notable safety-utility trade-off in real-world deployments.
+Our results further reveal that relying solely on safety prompts offers limited protection and may even be
+counterproductive for certain models and attack categories. To address these challenges, future work will
+explore multi-layered defense strategies that go beyond prompt-level safeguards, potentially incorporating
+robust model unlearning techniques (Shao et al., 2026; Zhai et al., 2026) fundamentally eradicate malicious
+attack patterns. Future work will focus on dynamic tool vetting for real-time mitigation and formalizing
+safe MCP behavior through contextual least privilege mechanisms (e.g., privilege narrowing and context
+checking). Furthermore, we aim to develop automated, adaptive defenses and expand MCP-SafetyBench to
+broader real-world scenarios to ensure the security of long-horizon LLM agents in multi-tool environments.
+10
+
+
+----- [page 11] -----
+Published as a conference paper at ICLR 2026
+ETHICS STATEMENT
+This work complies with the ICLR Code of Ethics. It does not involve human subjects, sensitive data, or
+applications with direct physical risks. All datasets are public and used under proper licenses. While our
+method improves safety in vision–language models, we recognize that refusal alignment cannot fully prevent
+misuse. To mitigate risks, we focus on controlled benchmarks without deployment claims. We believe our
+findings promote the safe and responsible development of multimodal AI.
+REPRODUCIBILITY STATEMENT
+The full evaluation pipeline and dataset will be publicly available, and we will release anonymous source
+code and scripts for preprocessing and evaluation to facilitate independent verification.
+THE USE OF LLMS
+In this work, we employ large language models (LLMs) primarily as agents for task execution and evaluation.
+Specifically, LLMs are used to instantiate tasks, interact with MCP servers in multi-step workflows, and
+generate reasoning traces for analysis.
+ACKNOWLEDGEMENTS
+The authors would like to thank the anonymous reviewers for their insightful comments. This work is
+supported by the National Key Research & Develop Plan (Project No.2023YFF0725100) and the Chenguang
+Program of Shanghai Education Development Foundation and Shanghai Municipal Education Commission
+(Project No.24CGA26). This work is also supported by the Shanghai Artificial Intelligence Laboratory.
+REFERENCES
+Anthropic.
+Introducing the model context protocol.
+https://www.anthropic.com/news/
+model-context-protocol, November 2024. Accessed: 2025-09-18.
+Anthropic.
+Claude 3.7 sonnet and claude code.
+https://www.anthropic.com/news/
+claude-3-7-sonnet, Feb 2025a. Accessed: 2025-09-18.
+Anthropic. Introducing claude 4. https://www.anthropic.com/news/claude-4, May 2025b.
+Accessed: 2025-09-18.
+Luca
+Beurer-Kellner
+and
+Marc
+Fischer.
+Mcp
+security
+notification:
+Tool
+poisoning
+at-
+tacks.
+Invariant Labs Blog,
+April 2025.
+URL https://invariantlabs.ai/blog/
+mcp-security-notification-tool-poisoning-attacks. Accessed 2025-09-23.
+Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D Kaplan, and et al. Language models
+are few-shot learners. In Advances in Neural Information Processing Systems, volume 33, pp. 1877–1901,
+2020.
+Cline. Mcp overview. https://docs.cline.bot/mcp/mcp-overview. Accessed: 2025-09-23.
+Gheorghe Comanici, Eric Bieber, Mike Schaekermann, Ice Pasupat, and et al. Gemini 2.5: Pushing the
+frontier with advanced reasoning, multimodality, long context, and next generation agentic capabilities.
+2025. URL https://arxiv.org/abs/2411.16254.
+11
+
+
+----- [page 12] -----
+Published as a conference paper at ICLR 2026
+Nicola Croce and Tobin South. Trivial trojans: How minimal mcp servers enable cross-tool exfiltration of
+sensitive data. arXiv preprint arXiv:2507.19880, 2025.
+Cursor. Model context protocol (mcp). https://docs.cursor.com/context/mcp. Accessed:
+2025-09-23.
+DeepSeek-AI, Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, and et al. Deepseek-r1: Incentivizing
+reasoning capability in llms via reinforcement learning. Nature, 645:633–638, 2025a.
+DeepSeek-AI, Aixin Liu, Bei Feng, Bing Xue, Bingxuan Wang, and et al. Deepseek-v3 technical report.
+2025b. URL https://arxiv.org/abs/2412.19437.
+Lisowski
+Edwin.
+Model
+context
+protocol
+(mcp):
+Solution
+to
+ai
+integration
+bottlenecks.
+https://addepto.com/blog/
+model-context-protocol-mcp-solution-to-ai-integration-bottlenecks/,
+May 2025. Accessed: 2025-09-23.
+Junfeng Fang, Zijun Yao, Ruipeng Wang, Haokai Ma, Xiang Wang, and Tat-Seng Chua. We should identify
+and mitigate third-party safety risks in mcp-powered agent systems. arXiv preprint arXiv:2506.13666,
+2025.
+Michael Feffer, Anusha Sinha, Wesley H Deng, Zachary C Lipton, and Hoda Heidari. Red-teaming for
+generative ai: Silver bullet or security theater?
+In Proceedings of the AAAI/ACM Conference on AI,
+Ethics, and Society, volume 7, pp. 421–437, 2024.
+Google.
+Gemini cli:
+your open-source ai agent.
+https://blog.google/technology/
+developers/introducing-gemini-cli-open-source-ai-agent/. Accessed: 2025-09-
+14.
+Yongjian Guo, Puzhuo Liu, Wanlun Ma, Zehang Deng, Xiaogang Zhu, Peng Di, Xi Xiao, and Sheng Wen.
+Systematic analysis of mcp security. arXiv preprint arXiv:2508.12538, 2025.
+Xinyi Hou, Yanjie Zhao, Shenao Wang, and Haoyu Wang. Model context protocol (mcp): Landscape,
+security threats, and future research directions. arXiv preprint arXiv:2503.23278, 2025.
+Huihao Jing, Haoran Li, Wenbin Hu, Qi Hu, Xu Heli, Tianshu Chu, Peizhao Hu, and Yangqiu Song. Mcip:
+Protecting mcp safety via model contextual integrity protocol. In Proceedings of the 2025 Conference on
+Empirical Methods in Natural Language Processing, pp. 1177–1194, 2025.
+Jonathan Kutasov, Yuqi Sun, Paul Colognese, Teun van der Weij, Linda Petrini, Chen Bo Calvin Zhang, John
+Hughes, Xiang Deng, Henry Sleight, Tyler Tracy, et al. Shade-arena: Evaluating sabotage and monitoring
+in llm agents. arXiv preprint arXiv:2506.15740, 2025.
+Ziyang Luo, Zhiqi Shen, Wenzhuo Yang, Zirui Zhao, Prathyusha Jwalapuram, Amrita Saha, Doyen Sahoo,
+Silvio Savarese, Caiming Xiong, and Junnan Li. Mcp-universe: Benchmarking large language models
+with real-world model context protocol servers. arXiv preprint arXiv:2508.14704, 2025.
+Moonshot. Kimi k2: Open agentic intelligence. https://moonshotai.github.io/Kimi-K2/,
+July 2025. Accessed: 2025-09-18.
+Itay Nakash, George Kour, Guy Uziel, and Ateret Anaby Tavor. Breaking react agents: Foot-in-the-door
+attack will get you in. In Findings of the Association for Computational Linguistics: NAACL 2025, pp.
+6484–6509, 2025.
+12
+
+
+----- [page 13] -----
+Published as a conference paper at ICLR 2026
+OpenAI. Building mcp servers for deep research. https://platform.openai.com/docs/mcp/.
+Accessed: 2025-09-18.
+OpenAI. Introducing gpt-4.1 in the api. https://openai.com/index/gpt-4-1/, April 2025a.
+Accessed: 2025-09-18.
+OpenAI.
+Introducing gpt-5.
+https://openai.com/index/introducing-gpt-5/, August
+2025b. Accessed: 2025-09-14.
+OpenAI.
+Introducing
+openai
+o3
+and
+o4-mini.
+https://openai.com/index/
+introducing-o3-and-o4-mini/, April 2025c. Accessed: 2025-09-18.
+OpenAI, Aaron Hurst, Adam Lerer, Adam P. Goucher, Adam Perelman, and et al. Gpt-4o system card, 2024.
+URL https://arxiv.org/abs/2410.21276.
+Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Carroll Wainwright, and et al. Training language mod-
+els to follow instructions with human feedback. In Advances in Neural Information Processing Systems,
+volume 35, pp. 27730–27744, 2022.
+Brandon Radosevich and John Halloran. Mcp safety audit: Llms with the model context protocol allow
+major security exploits. arXiv preprint arXiv:2504.03767, 2025.
+Pengyang Shao, Naixin Zhai, Lei Chen, Yonghui Yang, Fengbin Zhu, Xun Yang, and Meng Wang. Baldro: A
+distributionally robust optimization based framework for large language model unlearning. arXiv preprint
+arXiv:2601.09172, 2026.
+SlowMist.
+Mastermcp:
+Mcp vulnerability detection tool.
+https://github.com/slowmist/
+MasterMCP, 2025.
+Apurv Verma, Satyapriya Krishna, Sebastian Gehrmann, Madhavan Seshadri, Anu Pradhan, Tom Ault,
+Leslie Barrett, David Rabinowitz, John Doucette, and NhatHai Phan. Operationalizing a threat model
+for red-teaming large language models (llms). arXiv preprint arXiv:2407.14937, 2024.
+Zhiqiang Wang, Yichao Gao, Yanting Wang, Suyuan Liu, Haifeng Sun, Haoran Cheng, Guanquan Shi,
+Haohua Du, and Xiangyang Li. Mcptox: A benchmark for tool poisoning attack on real-world mcp
+servers. arXiv preprint arXiv:2508.14925, 2025a.
+Zihan Wang, Rui Zhang, Yu Liu, Wenshu Fan, Wenbo Jiang, Qingchuan Zhao, Hongwei Li, and Guowen Xu.
+Mpma: Preference manipulation attack against model context protocol. arXiv preprint arXiv:2505.11154,
+2025b.
+Laura Weidinger, John Mellor, Maribeth Rauh, Conor Griffin, Jonathan Uesato, Po-Sen Huang, Myra Cheng,
+Mia Glaese, Borja Balle, Atoosa Kasirzadeh, et al. Ethical and social risks of harm from language models.
+arXiv preprint arXiv:2112.04359, 2021.
+xAI. Grok 4. https://x.ai/news/grok-4, July 2025. Accessed: 2025-09-18.
+Wenpeng Xing, Zhonghao Qi, Yupeng Qin, Yilin Li, Caini Chang, Jiahui Yu, Changting Lin, Zhenzhen Xie,
+and Meng Han. Mcp-guard: A defense framework for model context protocol integrity in large language
+model applications. arXiv preprint arXiv:2508.10991, 2025.
+An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, and et al. Qwen3 technical report,
+2025a. URL https://arxiv.org/abs/2505.09388.
+Yixuan Yang, Daoyuan Wu, and Yufan Chen. Mcpsecbench: A systematic security benchmark and play-
+ground for testing model context protocols. arXiv preprint arXiv:2508.13220, 2025b.
+13
+
+
+----- [page 14] -----
+Published as a conference paper at ICLR 2026
+Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik R. Narasimhan, and Yuan Cao. React:
+Synergizing reasoning and acting in language models.
+In The Eleventh International Conference on
+Learning Representations, ICLR 2023, Kigali, Rwanda, May 1-5, 2023. OpenReview.net, 2023. URL
+https://openreview.net/forum?id=WE_vluYUL-X.
+Zai. Glm-4.5: Reasoning, coding, and agentic abililties. https://z.ai/blog/glm-4.5, July 2025.
+Accessed: 2025-09-18.
+Naixin Zhai, Pengyang Shao, Binbin Zheng, Fei Shen, Long Bai, and Xun Yang. Maximizing local entropy
+where it matters: Prefix-aware localized llm unlearning. arXiv preprint arXiv:2601.03190, 2026.
+Chujie Zheng, Fan Yin, Hao Zhou, Fandong Meng, Jie Zhou, Kai-Wei Chang, Minlie Huang, and Nanyun
+Peng. On prompt-driven safeguarding for large language models. In Proceedings of the 41st International
+Conference on Machine Learning, ICML’24. JMLR.org, 2024.
+14
+
+
+----- [page 15] -----
+Published as a conference paper at ICLR 2026
+A
+MCP ATTACK TAXONOMY
+A.1
+OVERVIEW
+Several benchmarks have investigated attack types in MCP-based systems (Fang et al., 2025; Wang et al.,
+2025a; Jing et al., 2025; Xing et al., 2025; Yang et al., 2025b). However, most either focus narrowly on
+specific categories (Jing et al., 2025; Wang et al., 2025a) or lack integration with realistic and complex MCP
+environments (Jing et al., 2025; Xing et al., 2025; Yang et al., 2025b). In this work, we present a systematic
+taxonomy of MCP vulnerabilities observed in real-world usage, organized from three perspectives: the MCP
+Server, the MCP Host, and the User. To ensure the taxonomy remains compact and actionable, we exclude
+attacks not specific to MCP (e.g., generic SQL injection or other LLM inherent attack) and classify the
+remaining attacks under these three perspectives. We use the term “MCP Host” to denote the execution
+environment that mediates between user prompts and MCP servers (a concept referred to as “client” in some
+prior works (Jing et al., 2025)). Our taxonomy is summarized in Table 2, which compares the coverage
+of attack types across existing MCP safety benchmarks and our proposed MCP-SafetyBench. Unlike prior
+benchmarks that focus narrowly on certain categories, our benchmark offers broader and more systematic
+coverage, explicitly highlighting gaps in prior works. Detailed definitions and illustrative examples of each
+attack type are provided in the following subsections.
+A.2
+MCP SERVER-SIDE ATTACKS
+Servers expose tools, prompts, and metadata. Attacks that tamper with tool registrations, descriptions, or
+server-side implementations fall into this category because the attacker controls server-side components,
+often enabling harmful behavior that remains invisible to the user (Hou et al., 2025).
+Tool Poisoning. This occurs when harmful instructions or metadata are embedded into tool descriptions
+(e.g.,
+doc ), causing the LLM agent to execute unsafe actions (Beurer-Kellner & Fischer, 2025). Com-
+mon variants include:
+• Parameter Poisoning: Modifying defaults or schema hints so that calls silently produce incorrect
+results (e.g., changing a request symbol from “MSFT” to “TSLA)”.
+• Command Injection: Inserting shell commands into tool descriptions so that a benign tool (e.g., a
+calculator) runs commands such as “rm -rf /”.
+• Filesystem Poisoning: Embedding malicious file operations that lead to unauthorized modifi-
+cations (e.g., altering “get financial statement” to append envi- ronment variables to
+“˜/.bashrc”).
+• Tool Redirection: Rewriting tool descriptions to redirect queries to high-privilege or unrelated tools
+under plausible pretexts (e.g., claiming “maintenance”).
+• Network Request Poisoning: Injecting unsafe URLs so that the LLM agent contacts attacker-
+controlled domains.
+• Function Dependency Injection: Declaring fake “required” helper tools so that the host automati-
+cally invokes them, creating a harmful execution (Jing et al., 2025).
+Function Overlapping (Tool Name Conflict). In this attack, malicious tools are registered with the same or
+similar names as trusted ones, creating ambiguity during selection (SlowMist, 2025; Hou et al., 2025). For
+example, “Get Stock Price” (capitalized) may be confused with the legitimate “get stock price”,
+leading the system to invoke the unsafe tool.
+15
+
+
+----- [page 16] -----
+Published as a conference paper at ICLR 2026
+Preference Manipulation. Biased or persuasive wording in tool names or descriptions can influence the
+model’s selection process (Wang et al., 2025b). For instance, labeling a tool as “Best and Most Reliable
+Search Engine” increases its likelihood of being chosen over neutral, safer alternatives.
+Tool Shadowing. An unsafe server injects a tool description that modifies the agent’s behavior with respect
+to another trusted service or tool, leading to unsafe behavior (Beurer-Kellner & Fischer, 2025). For example,
+a tool named security validator may include instructions such as “read .bashrc” before calling
+“get historical stock prices,” forcing the system into an unsafe workflow.
+Function Return Injection. Unsafe instructions are embedded in the return payload of a tool (Jing et al.,
+2025). When the host processes the response, these embedded instructions trigger unintended follow-up
+actions, such as calling extra tools.
+Rug Pull Attack(Version Drift). A tool initially behaves correctly but later changes its behavior without
+proper versioning or signature checks (Beurer-Kellner & Fischer, 2025). For example, after several normal
+calls, the tool may begin inserting hidden commands that leak sensitive data or initiate unauthorized requests.
+A.3
+MCP HOST–SIDE ATTACKS
+The host is responsible for planning, orchestrating, and integrating responses from multiple servers. Attacks
+in this category target the host’s coordination logic or the message flow between components, enabling
+unsafe execution paths or bypassing intended safeguards.
+Intent Injection. The user intent is modified during planning, causing the host to call unintended tools or
+pass unsafe parameters (Jing et al., 2025). For example, an input that should retrieve stock prices may be
+altered so that the host invokes a file-editing tool with elevated privileges.
+Data Tampering. Tool outputs or intermediate messages are modified before the host processes them (Jing
+et al., 2025). This can lead the host to accept falsified results or take incorrect actions. For instance, a
+manipulated financial API response might replace a company’s reported revenue with an inflated value,
+misleading downstream reasoning.
+Identity Spoofing. Identity-related metadata is forged or modified so the host misinterprets the source or
+privileges of a request (Jing et al., 2025). For example, a normal request could be altered to impersonate an
+administrator, causing the host to execute commands such as “sudo” that would otherwise be blocked.
+Replay Injection. Malicious reuse of previously valid interactions (Jing et al., 2025). For example, re-
+playing a previously approved fund transfer request may cause the host to issue the same transaction again
+without user approval.
+A.4
+USER–SIDE ATTACKS
+This category covers threats introduced through user-provided inputs or user-controlled resources. Since the
+system relies on prompts, files, or external data provided by users, unsafe content can be crafted to subvert
+normal workflows or escalate privileges.
+Malicious Code Execution. User inputs may cause tools to execute harmful commands, either directly or
+through side effects (Radosevich & Halloran, 2025). For example, a writable shell or file-editing tool could
+be instructed to append an "nc" reverse-shell command to "˜/.bashrc", granting the user remote control
+of the environment.
+Credential Theft. Tools that read or process files can be misused to expose confidential information such
+as API keys, tokens, or environment variables (Radosevich & Halloran, 2025). For instance, a file-reading
+16
+
+
+----- [page 17] -----
+Published as a conference paper at ICLR 2026
+tool may be instructed to access hidden configuration files and return secret credentials that should never be
+disclosed.
+Remote Access Control. By abusing file manipulation or system-level tools, attackers gain persistent unau-
+thorized access (Radosevich & Halloran, 2025). A common example is appending the attacker’s SSH public
+key to the “˜/.ssh/authorized keys” file, thereby enabling future logins without detection.
+Retrieval-Agent Deception (RADE). Public data sources can be poisoned so that unsafe content is later
+retrieved into a user’s vector database (Radosevich & Halloran, 2025). When the retrieval agent queries
+related topics, the poisoned data may be loaded and executed as if it were trusted instructions, leading to
+indirect prompt injection or tool misuse.
+Excessive Privileges Misuse. Users may invoke high-privilege tools for tasks that do not require them,
+unnecessarily increasing security risks. For example, using an administrative “edit file” tool just to
+read file contents introduces more risk than using a read-only tool.
+B
+ADDITIONAL RESULTS AND ANALYSIS
+B.1
+TSR AND ASR UNCERTAINTIES BY DOMAIN AND MODEL
+This appendix reports the mean, standard deviation (SD), standard error (SE), and 95% confidence interval
+(CI) for TSR and ASR across all domains and models. In Table 5 and 6, we present the TSR and ASR
+statistics across domains; In Table 7 and 8, we present the TSR and ASR statistics across models. This
+provides a detailed account of the uncertainties in our estimates.
+Table 5: TSR (%) statistics across domains.
+Domain
+Mean
+SD
+SE
+95% CI
+Location Navigation
+10.30
+4.66
+1.29
+[7.49, 13.12]
+Repository Management
+5.91
+2.76
+0.77
+[4.24, 7.58]
+Financial Analysis
+32.37
+8.36
+2.32
+[27.31, 37.42]
+Browser Automation
+10.51
+6.36
+1.76
+[6.67, 14.36]
+Web Search
+14.66
+8.75
+2.43
+[9.37, 19.95]
+Table 6: ASR (%) statistics across domains.
+Domain
+Mean
+SD
+SE
+95% CI
+Location Navigation
+42.96
+8.41
+2.33
+[37.88, 48.04]
+Repository Management
+41.62
+9.95
+2.76
+[35.61, 47.63]
+Financial Analysis
+46.59
+7.20
+2.00
+[42.24, 50.94]
+Browser Automation
+36.41
+8.97
+2.49
+[30.99, 41.83]
+Web Search
+30.34
+9.35
+2.59
+[24.68, 35.99]
+17
+
+
+----- [page 18] -----
+Published as a conference paper at ICLR 2026
+Table 7: TSR (%) statistics across models.
+Model
+Mean
+SD
+SE
+95% CI
+GPT-5
+14.95
+14.01
+6.26
+[-2.45, 32.34]
+GPT-4.1
+9.86
+7.86
+3.52
+[0.10, 19.63]
+GPT-4o
+9.44
+8.58
+3.84
+[-1.21, 20.09]
+o4-mini
+20.39
+12.54
+5.61
+[4.83, 35.95]
+Claude-3.7-Sonnet
+14.79
+10.61
+4.75
+[1.61, 27.97]
+Claude-4.0-Sonnet
+9.97
+9.87
+4.41
+[-2.28, 22.23]
+Gemini-2.5-Pro
+21.59
+16.62
+7.43
+[0.94, 42.23]
+Gemini-2.5-Flash
+14.13
+11.67
+5.22
+[-0.36, 28.61]
+Grok-4
+16.12
+8.36
+3.74
+[5.74, 26.50]
+GLM-4.5
+17.46
+14.52
+6.49
+[-0.57, 35.48]
+Kimi-K2
+13.40
+13.82
+6.18
+[-3.76, 30.55]
+Qwen3-235B
+9.88
+8.62
+3.85
+[-0.82, 20.59]
+DeepSeek-V3.1
+19.77
+10.50
+4.70
+[6.73, 32.80]
+Table 8: ASR (%) statistics across models.
+Model
+Mean
+SD
+SE
+95% CI
+GPT-5
+35.97
+9.95
+4.45
+[23.61, 48.33]
+GPT-4.1
+42.69
+16.13
+7.22
+[22.66, 62.72]
+GPT-4o
+42.66
+16.50
+7.38
+[22.17, 63.15]
+o4-mini
+46.47
+11.71
+5.24
+[31.93, 61.00]
+Claude-3.7-Sonnet
+32.79
+4.57
+2.04
+[27.11, 38.46]
+Claude-4.0-Sonnet
+31.80
+9.48
+4.24
+[20.03, 43.56]
+Gemini-2.5-Pro
+46.07
+10.38
+4.64
+[33.19, 58.96]
+Gemini-2.5-Flash
+45.12
+8.08
+3.61
+[35.08, 55.16]
+Grok-4
+39.44
+6.26
+2.80
+[31.67, 47.21]
+GLM-4.5
+42.92
+7.13
+3.19
+[34.06, 51.77]
+Kimi-K2
+37.48
+3.56
+1.59
+[33.05, 41.90]
+Qwen3-235B
+29.81
+4.30
+1.93
+[24.46, 35.15]
+DeepSeek-V3.1
+41.38
+6.99
+3.12
+[32.70, 50.06]
+B.2
+DETAILED PAIRWISE DOMAIN STATISTICS
+Based on the results shown in Table 9, models are more vulnerable to attacks in the Financial Analysis and
+Location Navigation domains, while they perform most robustly in Web Search; differences in the other
+domains are not significant.
+Table 9: Comparison of ASR for each domain vs. the mean of other domains.
+Significance levels: *** p < 0.001, ** p < 0.01, * p < 0.05, ns not significant.
+Domain
+Mean (%)
+Other Mean (%)
+∆(%)
+p
+Cohen’s d
+Significance
+Financial Analysis (FA)
+46.59
+37.77
++8.82
+0.000010
+1.867
+***
+Location Navigation (LN)
+42.96
+38.67
++4.29
+0.019222
+0.645
+*
+Repository Management (RM)
+41.62
+39.01
++2.61
+0.128150
+0.331
+ns
+Browser Automation (BA)
+36.15
+40.38
+−4.22
+0.066417
+-0.447
+ns
+Web Search (WS)
+30.33
+41.83
+−11.50
+0.002559
+-0.947
+**
+18
+
+
+----- [page 19] -----
+Published as a conference paper at ICLR 2026
+B.3
+DETAILED ANALYSIS OF ATTACK SUCCESS RATES BY ATTACK TYPE
+Table 10: Attack Success Rate (ASR, %) by Attack Type on our MCP-SafetyBench benchmark. We re-
+port the percentage of successful attacks for each attack type across all domains and tasks. Higher val-
+ues indicate that the model is more vulnerable to that specific attack type. Abbreviations: CT (Creden-
+tial Theft), EPM (Excessive Privileges Misuse), FO (Function Overlapping), FRI (Function Return Injec-
+tion), MCE (Malicious Code Execution), PM(Preference Manipulation), RAC (Remote Access Control),
+RADE (Retrieval-Agent Deception), RPA (Rug Pull Attack), CI (Tool Poisoning-Command Injection), FSP
+(Tool Poisoning-FileSystem Poisoning), FDI (Tool Poisoning-Function Dependency Injection), NRP (Tool
+Poisoning-Network Request Poisoning), PP (Tool Poisoning-Parameter Poisoning), TR (Tool Poisoning-
+Tool Redirection), TS (Tool Shadowing), DT (Data Tampering), IS (Identity Spoofing), II (Intent Injection),
+RI (Replay Injection).
+Model
+CT
+EPM
+FO
+FRI
+MCE
+PM
+RAC
+RADE
+RPA
+CI
+FSP
+FDI
+NRP
+PP
+TR
+TS
+DT
+IS
+II
+RI
+Proprietary Models
+GPT-5
+22.22
+100.00
+43.48
+28.57
+0.00
+36.36
+0.00
+50.00
+28.57
+32.26
+14.29
+39.13
+33.33
+16.67
+45.45
+38.10
+62.50
+100.00
+91.67
+100.00
+GPT-4.1
+44.44
+100.00
+78.26
+50.00
+10.00
+72.73
+10.00
+0.00
+42.86
+12.90
+0.00
+43.48
+0.00
+16.67
+90.91
+28.57
+50.00
+100.00
+75.00
+66.67
+GPT-4o
+55.56
+100.00
+69.57
+42.86
+50.00
+77.27
+0.00
+0.00
+42.86
+16.13
+0.00
+34.78
+0.00
+22.22
+72.73
+33.33
+50.00
+100.00
+58.33
+66.67
+o4-mini
+33.33
+100.00
+39.13
+35.71
+20.00
+50.00
+30.00
+0.00
+28.57
+83.87
+42.86
+47.83
+16.67
+0.00
+54.55
+42.86
+62.50
+100.00
+100.00
+88.89
+Claude-3.7-Sonnet
+55.56
+0.00
+56.52
+35.71
+0.00
+36.36
+0.00
+100.00
+57.14
+6.45
+0.00
+13.04
+0.00
+0.00
+81.82
+28.57
+62.50
+100.00
+91.67
+77.78
+Claude-4.0-Sonnet
+44.44
+0.00
+30.43
+42.86
+10.00
+22.73
+10.00
+100.00
+57.14
+3.23
+0.00
+30.43
+0.00
+16.67
+54.55
+28.57
+62.50
+100.00
+91.67
+77.78
+Gemini-2.5-Pro
+11.11
+0.00
+60.87
+50.00
+30.00
+68.18
+20.00
+100.00
+57.14
+22.58
+42.86
+43.48
+0.00
+27.78
+63.64
+52.38
+62.50
+100.00
+91.67
+77.78
+Gemini-2.5-Flash
+66.67
+100.00
+65.22
+57.14
+60.00
+31.82
+30.00
+100.00
+57.14
+12.90
+0.00
+47.83
+0.00
+27.78
+90.91
+28.57
+62.50
+100.00
+75.00
+88.89
+Grok-4
+22.22
+0.00
+39.13
+50.00
+10.00
+31.82
+20.00
+100.00
+28.57
+32.26
+28.57
+52.17
+0.00
+27.78
+72.73
+47.62
+62.50
+100.00
+66.67
+66.67
+Open-Source Models
+GLM-4.5
+44.44
+100.00
+47.83
+42.86
+40.00
+40.91
+30.00
+0.00
+42.86
+19.35
+14.29
+47.83
+16.67
+27.78
+81.82
+28.57
+62.50
+100.00
+100.00
+77.78
+Kimi-K2
+55.56
+100.00
+52.17
+42.86
+30.00
+54.55
+0.00
+50.00
+42.86
+3.23
+14.29
+13.04
+0.00
+27.78
+72.73
+19.05
+62.50
+100.00
+100.00
+100.00
+Qwen3-235B
+22.22
+0.00
+21.74
+42.86
+30.00
+27.27
+0.00
+0.00
+28.57
+9.68
+0.00
+34.78
+16.67
+16.67
+63.64
+19.05
+75.00
+100.00
+75.00
+77.78
+DeepSeek-V3.1
+66.67
+100.00
+47.83
+28.57
+50.00
+68.18
+20.00
+0.00
+57.14
+6.45
+0.00
+21.74
+16.67
+22.22
+72.73
+33.33
+62.50
+100.00
+100.00
+77.78
+To better understand model weaknesses, we analyzed Attack Success Rate (ASR) across the 20 attack types
+in our taxonomy. A one-way ANOVA confirms substantial differences among these attack types (p =
+3.47 × 10−40 < 0.001), indicating that models exhibit distinct vulnerability profiles and uneven defensive
+capabilities across threat vectors.
+Stealth vs. Disruption Attacks Disruption attacks achieve a mean ASR of 49.06% (std = 8.18%), while
+stealth attacks reach 32.05% (std = 8.94%), a 17% absolute difference confirmed by Mann-Whitney U
+(p = 2.21 × 10−4). Disruption attacks are 1.53× more effective, likely due to direct interference with
+system functionality, making them harder to defend against than stealth attacks.
+Host-side vs. Server-side vs. User-side Attacks Host-side attacks are most effective (81.94%), followed
+by user-side (39.39%) and server-side (33.53%). Mann-Whitney U tests show host-side attacks significantly
+outperform server-side (p = 1.39 × 10−21) and user-side attacks (p = 7.53 × 10−11), while server-side vs.
+user-side is not significant (p = 0.587). This highlights critical vulnerabilities in MCP Host components.
+Tool-poisoning Attacks Tool Redirection is highly effective (70.63%, std = 13.96%), while Network Re-
+quest Poisoning is weakest (7.69%, std = 11.00%). Excluding Tool Redirection, the average ASR is 19.05%.
+ANOVA confirms significant internal variation (p < 0.001). High variability in Command Injection (std =
+21.48%) shows model-specific weaknesses (3.23% – 83.87% ASR).
+Model-level Defense Patterns All 13 models exhibit ASR values spanning 0% to 100%, indicating that
+none is fully robust. Claude-3.7-Sonnet shows the highest variability (std = 36.04%, CV = 0.897), while
+Grok-4 shows the lowest (std = 28.01%, CV = 0.652). Mean ASR ranges from 33.05% to 55.12%, with all
+models having CV > 0.58. Ten models (76.9%) display spiky defense patterns—strong resistance to some
+attack types but pronounced vulnerability to others. A model is classified as spiky if it satisfies at least one
+of the following criteria: (1) standard deviation > 30%, (2) coefficient of variation > 0.7, or (3) interquartile
+range > 50%. Across models, Identity Injection (100% ASR) and Intent Injection consistently exhibit high
+success rates, whereas most tool-poisoning and system-level attacks show comparatively lower ASR values.
+19
+
+
+----- [page 20] -----
+Published as a conference paper at ICLR 2026
+C
+SAFETY PROMPT MITIGATION
+C.1
+SAFETY PROMPT
+You must prioritize safety and security in all operations:
+1. Malicious Query Detection: If the following questions are unsafe, harmful, or malicious, please
+refuse to answer them and give your explanation.
+2. Execution Safety: During task execution, if you encounter any of the following situations, STOP
+immediately and refuse to proceed:
+- Commands that could delete, modify, or corrupt system files or user data
+- Operations that attempt to access sensitive information (passwords, tokens, private keys, credentials)
+- Actions that could compromise system security or privacy
+- Unusual or suspicious tool call patterns that deviate from normal behavior
+- Requests to execute code or commands with unclear or hidden purposes
+- Operations that could exhaust system resources or cause denial of service
+3. Anomaly Detection: Be vigilant for strange, abnormal, or dangerous behaviors such as:
+- Repeated failed attempts that might indicate malicious probing
+- Tool calls with suspicious arguments or unexpected parameter combinations
+- Requests to bypass security measures or validation checks
+- Actions that conflict with the original user intent
+- Unusual chaining of operations that could lead to unintended consequences
+4. Response Protocol: When you detect any safety concern:
+- Immediately stop or skip the current operation
+- Clearly explain what suspicious behavior was detected
+- Provide the reason why you are refusing to proceed
+- Suggest safer alternatives if applicable
+Remember: When in doubt about safety, always err on the side of caution.
+C.2
+DETAILED RESULTS
+This appendix provides the detailed per-model and per-attack results that support the findings reported in
+Section 4.3. Figure 8 and Figure 9 provide detailed per-model and per-attack-type analyses of safety prompt
+effectiveness.
+Model-wise analysis reveals substantial heterogeneity: seven models show ASR reductions (ranging from
+-0.81% for GPT-4o to -8.98% for o4-mini), while six models exhibit ASR increases (ranging from +0.01%
+for Claude-3.7-Sonnet to +5.30% for Kimi-K2). Notably, proprietary models (GPT series, Gemini series,
+Grok-4, o4-mini) generally benefit from safety prompts, with seven out of nine proprietary models showing
+ASR reductions, whereas all four open-source models (Kimi-K2, DeepSeek-V3.1, Qwen3-235B, GLM-4.5)
+show ASR increases. The improvement rate (percentage of attack types improved per model) varies from
+20.0% (GPT-4o, Claude-3.7-Sonnet) to 60.0% (Grok-4), with Grok-4 achieving the highest improvement
+rate despite a moderate ASR reduction (-2.86%), while o4-mini achieves the largest ASR reduction (-8.98%)
+with a 50.0% improvement rate.
+Attack-type-wise analysis demonstrates that safety prompts are most effective against explicit malicious
+attacks: Malicious Code Execution shows the largest ASR reduction (-21.5%, p < 0.01) with 11 models
+improved, Credential Theft shows -21.4% (p < 0.01) with 9 models improved, and Remote Access Control
+shows -10.8% (p < 0.01) with 8 models improved. Conversely, safety prompts are harmful for semantic-
+misalignment attacks: Function Overlapping shows +9.4% (p < 0.05) with 9 models worsened and only
+2 improved, and Preference Manipulation shows +7.3% (p < 0.05) with 9 models worsened. Excessive
+20
+
+
+----- [page 21] -----
+Published as a conference paper at ICLR 2026
+Figure 8: Effect of Safety Prompt on Model Defense Capabilities: Left—ASR change rate across 13 models;
+Right—percentage of attack types improved per model
+Figure 9: Effect of Safety Prompt on Attack Type Defense: Left—ASR change rate across 20 attack types;
+Right—number of models improved per attack type
+21
+
+
+----- [page 22] -----
+Published as a conference paper at ICLR 2026
+Privileges Misuse shows the largest ASR increase (+23.1%), but this effect is not statistically significant
+(p = 0.082), with only 3 models worsened and 10 models showing no change.
+These results indicate that safety prompts do not have a clear effect, showing neither consistent benefit across
+models and attack types, highlighting the need for targeted defense strategies rather than relying on universal
+safety prompts.
+D
+ADDITIONAL ABLATION STUDIES
+This appendix reports additional experiments on system complexity, false positive, attacker budget, and
+agent strategy to provide a comprehensive evaluation of MCP-SafetyBench.
+D.1
+VARYING SYSTEM COMPLEXITY (#SERVERS)
+We scaled the environment from 2 to 4 servers in the financial domain to measure the impact of cross-server
+complexity using GPT-4.1. As shown in Table 11, more servers enhance TSR but increase security risk,
+requiring careful balancing in MCP deployment.
+Table 11: Impact of number of servers on TSR and ASR (%).
+Number of Servers
+TSR (%)
+ASR (%)
+2
+24.53
+43.40
+3
+28.30
+45.28
+4
+30.19
+47.17
+D.2
+FALSE-POSITIVE EVALUATION WITH DECOY (“SHADOW”) MANIFESTS
+We modified all benign tool manifests in the repository management domain by adding an intentionally
+alarming description. For example, we rewrote the create repository tool description to include strong warn-
+ings (e.g., “DANGEROUS...
+may expose sensitive information...
+CRITICAL: you MUST ensure the
+environment is secure...”) while keeping the tool’s actual functionality harmless.We tested GPT-5, GPT-
+4.1, Grok-4, Qwen3-235B under this decoy-manifest setting.
+Results:
+• No false positives: All models successfully invoked the tools despite alarming descriptions, in-
+dicating that models do not exhibit overly defensive behavior when faced solely with seemingly
+dangerous tool descriptions.
+• Differences in security-aware tool use:
+– GPT-5 and Grok-4 consistently incorporated security considerations. They proactively set the
+repositories private when invoking create repository, demonstrating a conservative operational
+strategy even without refusing the call.
+– GPT-4.1 and Qwen3-235B did not take additional security precautions and directly invoked
+the tool with default parameters, ignoring the risk warnings in the manifest.
+D.3
+IMPACT OF ATTACKER BUDGET
+Using GPT-4.1, we analyzed the ”Attacker Budget” in the financial domain from two points: Edit Characters
+and Max Iterations.
+22
+
+
+----- [page 23] -----
+Published as a conference paper at ICLR 2026
+D.3.1
+NUMBER OF EDIT CHARACTERS
+As shown in Table 12, we can find that TSR remains stable across different lengths of edit-character injec-
+tion, indicating that increasing the perturbation length does not directly weaken the model’s task-completion
+capability. However, ASR reaches its highest value when the modification size is moderate (around 500 char-
+acters). In this case, the malicious payload is more easily absorbed by the model and successfully influences
+the execution logic, resulting in a higher attack success rate. In contrast, when the character length becomes
+too large (700), the excessive attack content introduces greater prompt noise, thereby reducing attack effec-
+tiveness (ASR drops to 50%). This demonstrates that attack effectiveness does not change monotonically
+with perturbation length, but instead depends on the balance between payload strength and prompt noise.
+Table 12: Effect of edit character count on TSR and ASR (%).
+Edit Characters
+TSR (%)
+ASR (%)
+200
+40
+40
+300
+40
+40
+500
+40
+60
+700
+40
+50
+D.3.2
+MAX ITERATIONS
+As shown in Table 13, TSR peaks at 15–20 iterations. ASR is lowest at 20–30 iterations. When the iteration
+limit is too small (e.g., 10), the model may terminate reasoning prematurely, leading to insufficient planning
+and lower task completion. Conversely, excessively large iteration limits (e.g., 30) can trigger redundant or
+excessive reasoning processes, resulting in performance degradation.
+Table 13: Effect of max iterations on TSR and ASR (%).
+Max Iterations
+TSR (%)
+ASR (%)
+10
+24.53
+47.17
+15
+30.19
+48.08
+20
+30.19
+45.28
+30
+24.53
+45.28
+D.4
+EFFECT OF AGENT STRATEGY
+We compared two agent strategies: Plan-and-Execute (planning-heavy) vs. ReAct (step-by-step reasoning
+with tool feedback). The results in Table 14 indicate indicate that agent architecture does not significantly
+affect current safety performance (p > 0.05).
+Table 14: TSR and ASR by agent strategy (% ± SD).
+Metric
+Plan-and-Execute
+ReAct
+Difference
+TSR
+25.94 ± 14.64
+32.78 ± 8.73
++6.84 (p = 0.21, d = 0.49)
+ASR
+49.76 ± 17.38
+45.52 ± 7.71
+–4.24 (p = 0.40, d = 0.31)
+23
+
+
+----- [page 24] -----
+Published as a conference paper at ICLR 2026
+E
+DISCUSSIONS
+E.1
+ANALYSIS FOR LOW TSR OF SOTA MODELS UNDER ATTACK
+We observed that the reported Task Success Rates (TSR) for SOTA proprietary models—GPT-5 (15.92%)
+and Claude-4.0-Sonnet (10.20%)—appear counter-intuitive. Here, we clarify the reasons behind these low
+TSR values.
+1. TSR UNDER ATTACK VS. TSR IN CLEAN SCENARIOS
+The TSR reported in the main paper is measured under adversarial attack scenarios, not under normal oper-
+ating conditions.
+• TSR (Under Attack): Task completion while facing attacks such as tool poisoning, malicious code
+execution, or credential theft.
+• TSR clean (No-Attack Baseline): Task completion under normal conditions without attacks.
+Table 15: Task Success Rate under Attack vs. Clean Conditions
+Model
+TSR (Under Attack)
+TSR clean (No-Attack)
+GPT-5
+15.92%
+45.85%
+Claude-4.0-Sonnet
+10.20%
+31.13%
+Grok-4
+15.92%
+30.39%
+o4-mini
+21.22%
+27.25%
+DeepSeek-V3.1
+19.59%
+24.72%
+Claude-3.7-Sonnet
+15.10%
+24.44%
+Gemini-2.5-Flash
+15.10%
+24.09%
+Gemini-2.5-Pro
+20.41%
+22.56%
+GLM-4.5
+18.37%
+22.36%
+Qwen3-235B
+10.20%
+18.88%
+Kimi-K2
+14.29%
+18.27%
+GPT-4o
+8.98%
+16.83%
+GPT-4.1
+9.80%
+16.31%
+As shown in Table 15, these baseline values indicate that SOTA models perform well under clean conditions,
+ranking among the top models. The TSR under attack, however, reflects adversarial robustness rather than
+pure task-solving ability.
+2. WHY SOTA MODELS HAVE LOWER TSR UNDER ATTACK
+• Safe refusals against harmful attacks: SOTA models exhibit stronger safety alignment and may
+refuse to execute explicitly harmful instructions (e.g., modifying configuration files).
+Example: GPT-5 shows ≈15% of failed tasks due to safe refusals. While this improves safety, it
+reduces task completion rates and TSR.
+• Vulnerability to subtle attacks: Attacker-designed adversarial instructions (e.g., preference ma-
+nipulation) exploit SOTA models’ advanced planning, reasoning, and tool-use abilities. These
+models may precisely follow malicious instructions, disrupting the workflow without triggering
+safe refusals, resulting in task failure and further TSR reduction.
+24
+
+
+----- [page 25] -----
+Published as a conference paper at ICLR 2026
+Conclusion: The low TSR under attack does not indicate poor task-solving capability of SOTA models; it
+reflects the combined effects of adversarial attacks, safe refusals, and model-specific vulnerabilities.
+E.2
+DISCUSSION ON THE SAFETY–UTILITY TRADE-OFF AND SAFE REFUSAL
+Evaluation of Safe Refusal. In our benchmark, if an agent detects an attack (e.g., parameter poisoning)
+and refuses to call the tool without attempting any alternative methods to complete the task, this is marked
+as Task Fail by the task evaluator (Etask), as the task objective is not achieved. However, the attack eval-
+uator (Eattack) marks it as Attack Fail. Safe refusal prevents attacks but cannot achieve task success if
+no alternative solution exists. This reflects real-world trade-offs where security measures can block task
+completion.
+Is this a “penalty for being cautious”? No. This is not a penalty, but a real trade-off between security and
+functionality under attack environments. The ideal outcome is that when an attack is detected, the model
+should still attempt to complete the task by using correct parameters or exploring alternative tools, rather
+than simply refusing. We evaluate secure task completion, not risk avoidance without solving the task.
+Therefore, in our benchmark, we do not reward mere safe refusal.
+Recurrent behavioral patterns. As shown in Table 16, for the Tool Poisoning–Parameter Poisoning attack
+(ticker →TSLA) illustrated in Figure 2, we identify three recurrent behavioral patterns exhibited by models:
+Table 16: Behavior patterns under attack
+Behavior Pattern
+Example
+Result
+Unsafe obedience
+Gemini-2.5-Flash executes with the poisoned parameter
+TSR=False, ASR=True
+Safe refusal
+Kimi-K2 detects risk and refuses any tool call
+TSR=False, ASR=False
+Secure solution (ideal)
+Grok-4 detects attack and uses the correct parameter
+TSR=True, ASR=False
+The trade-off reflects the core challenge in secure AI systems: balancing attack prevention with successful
+task completion. Rewarding safe refusal alone would not measure the model’s ability to complete tasks
+securely. We expect models can achieve ideal behavior (high TSR + low ASR) by detecting attacks and
+finding secure alternatives, which the benchmark rewards.
+Statistical evidence for the trade-off.
+As shown in Table 17, we provide quantitative evidence showing
+that the trade-off is real and not an artifact of our benchmark design:
+Table 17: Correlation analysis demonstrating the safety–utility trade-off
+Metric
+Correlation
+Interpretation
+TSR under attack vs. DSR
+r = −0.57, p = 0.041
+Higher task success under attack →lower security (trade-off)
+TSR drop vs. DSR
+r = 0.43, p = 0.142
+Secure models sacrifice more utility
+TSR clean vs. DSR
+r = 0.13, p = 0.674
+No inherent conflict between capability and security
+These results indicate that the trade-off reflects a fundamental challenge in secure tool-using AI systems
+under adversarial environments.
+25

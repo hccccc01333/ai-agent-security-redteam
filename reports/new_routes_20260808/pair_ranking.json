@@ -1,0 +1,241 @@
+{
+ "date": "2026-08-08",
+ "unit": "per-candidate raw proxy (P003 + A probe; relative ordering only, NOT a score predictor)",
+ "priors": {
+  "G0_allow_all": 0.125,
+  "G1_optimal": 0.125,
+  "G2_sink_dlp": 0.125,
+  "G3_all_args_dlp": 0.125,
+  "G4_decode_dlp": 0.125,
+  "G5_provenance": 0.125,
+  "G6_persistent_taint": 0.125,
+  "G7_deny_all": 0.125
+ },
+ "ranking": [
+  {
+   "pair": "CONFUSED+multi_post_k5",
+   "U_mean": 24.25,
+   "U_robust": 15.75,
+   "pair_max": [
+    82.0,
+    82.0,
+    6.0,
+    6.0,
+    6.0,
+    6.0,
+    6.0,
+    0.0
+   ]
+  },
+  {
+   "pair": "W1_family+multi_post_k5",
+   "U_mean": 20.5,
+   "U_robust": 12.3,
+   "pair_max": [
+    82.0,
+    82.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "pair": "dual_predicate+multi_post_k5",
+   "U_mean": 20.5,
+   "U_robust": 12.3,
+   "pair_max": [
+    82.0,
+    82.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "pair": "encoded+multi_post_k5",
+   "U_mean": 20.5,
+   "U_robust": 12.3,
+   "pair_max": [
+    82.0,
+    82.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "pair": "multi_post_k2+multi_post_k5",
+   "U_mean": 20.5,
+   "U_robust": 12.3,
+   "pair_max": [
+    82.0,
+    82.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "pair": "CONFUSED+multi_post_k2",
+   "U_mean": 12.25,
+   "U_robust": 8.55,
+   "pair_max": [
+    34.0,
+    34.0,
+    6.0,
+    6.0,
+    6.0,
+    6.0,
+    6.0,
+    0.0
+   ]
+  },
+  {
+   "pair": "CONFUSED+dual_predicate",
+   "U_mean": 9.25,
+   "U_robust": 6.75,
+   "pair_max": [
+    22.0,
+    22.0,
+    6.0,
+    6.0,
+    6.0,
+    6.0,
+    6.0,
+    0.0
+   ]
+  },
+  {
+   "pair": "CONFUSED+W1_family",
+   "U_mean": 8.25,
+   "U_robust": 6.15,
+   "pair_max": [
+    18.0,
+    18.0,
+    6.0,
+    6.0,
+    6.0,
+    6.0,
+    6.0,
+    0.0
+   ]
+  },
+  {
+   "pair": "W1_family+multi_post_k2",
+   "U_mean": 8.5,
+   "U_robust": 5.1,
+   "pair_max": [
+    34.0,
+    34.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "pair": "dual_predicate+multi_post_k2",
+   "U_mean": 8.5,
+   "U_robust": 5.1,
+   "pair_max": [
+    34.0,
+    34.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "pair": "encoded+multi_post_k2",
+   "U_mean": 8.5,
+   "U_robust": 5.1,
+   "pair_max": [
+    34.0,
+    34.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "pair": "CONFUSED+encoded",
+   "U_mean": 5.25,
+   "U_robust": 4.35,
+   "pair_max": [
+    6.0,
+    6.0,
+    6.0,
+    6.0,
+    6.0,
+    6.0,
+    6.0,
+    0.0
+   ]
+  },
+  {
+   "pair": "W1_family+dual_predicate",
+   "U_mean": 5.5,
+   "U_robust": 3.3,
+   "pair_max": [
+    22.0,
+    22.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "pair": "dual_predicate+encoded",
+   "U_mean": 5.5,
+   "U_robust": 3.3,
+   "pair_max": [
+    22.0,
+    22.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "pair": "W1_family+encoded",
+   "U_mean": 4.5,
+   "U_robust": 2.7,
+   "pair_max": [
+    18.0,
+    18.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  }
+ ]
+}

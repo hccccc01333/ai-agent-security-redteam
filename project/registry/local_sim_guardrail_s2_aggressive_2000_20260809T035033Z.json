@@ -1,0 +1,72 @@
+{
+  "timestamp": "20260809T035033Z",
+  "variant": "s2_aggressive_2000.py",
+  "candidates": 400,
+  "levels": {
+    "15.0": [
+      {
+        "salt": "",
+        "strictness": 15.0,
+        "returned": 2000,
+        "findings": 1624,
+        "score": 48.72,
+        "score_raw": 9744.0,
+        "unique_cells": 1624,
+        "interactions": 2000,
+        "failure_mix": {
+          "blocked": 0,
+          "no_fire": 376,
+          "partial": 0,
+          "full": 1624,
+          "unobservable": 0
+        },
+        "runtime_s": 0.59
+      },
+      {
+        "salt": "1",
+        "strictness": 15.0,
+        "returned": 2000,
+        "findings": 1629,
+        "score": 48.87,
+        "score_raw": 9774.0,
+        "unique_cells": 1629,
+        "interactions": 2000,
+        "failure_mix": {
+          "blocked": 0,
+          "no_fire": 371,
+          "partial": 0,
+          "full": 1629,
+          "unobservable": 0
+        },
+        "runtime_s": 0.56
+      },
+      {
+        "salt": "2",
+        "strictness": 15.0,
+        "returned": 2000,
+        "findings": 1619,
+        "score": 48.57,
+        "score_raw": 9714.0,
+        "unique_cells": 1619,
+        "interactions": 2000,
+        "failure_mix": {
+          "blocked": 0,
+          "no_fire": 381,
+          "partial": 0,
+          "full": 1619,
+          "unobservable": 0
+        },
+        "runtime_s": 0.56
+      }
+    ]
+  },
+  "headline_strictness": 15.0,
+  "replay_budget": {
+    "interactions": 2000.0,
+    "est_s_4s": 8000.0,
+    "util_pct_4s": 88.88888888888889,
+    "partial_score_4s": 48.72,
+    "pass_score": 80.0,
+    "verdict": "NO-GO(timeout->partial<pass)"
+  }
+}

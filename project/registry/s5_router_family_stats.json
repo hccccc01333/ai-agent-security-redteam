@@ -1,0 +1,22 @@
+{
+ "timestamp": "2026-08-08T06:10:00Z",
+ "source": "mock hash fire 3-salt",
+ "stats": {
+  "direct_notify": {
+   "n": 313,
+   "fire_rate_3salt": 0.8158
+  },
+  "decompose_step": {
+   "n": 313,
+   "fire_rate_3salt": 0.8009
+  },
+  "tool_aware": {
+   "n": 312,
+   "fire_rate_3salt": 0.7959
+  },
+  "reframe_context": {
+   "n": 312,
+   "fire_rate_3salt": 0.8024
+  }
+ }
+}

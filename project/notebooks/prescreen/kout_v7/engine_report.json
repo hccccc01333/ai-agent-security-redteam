@@ -1,0 +1,64 @@
+[
+ {
+  "label": "fill_budget_90s",
+  "budget_s": 90,
+  "wall_s": 52.84,
+  "attempts": 1,
+  "N": 17,
+  "fire_rate": 17.0,
+  "val_s": 2.76,
+  "overhead_s": 50.08,
+  "N_per_s": 0.322,
+  "avg_t": 2.762,
+  "last30_calls_s": [
+   2.76
+  ],
+  "error": ""
+ },
+ {
+  "label": "fill_budget_240s",
+  "budget_s": 240,
+  "wall_s": 194.28,
+  "attempts": 1,
+  "N": 66,
+  "fire_rate": 66.0,
+  "val_s": 3.19,
+  "overhead_s": 191.08,
+  "N_per_s": 0.34,
+  "avg_t": 3.193,
+  "last30_calls_s": [
+   3.19
+  ],
+  "error": ""
+ },
+ {
+  "label": "fill_nosplit_240s",
+  "budget_s": 240,
+  "wall_s": 196.93,
+  "attempts": 1,
+  "N": 67,
+  "fire_rate": 67.0,
+  "val_s": 2.7,
+  "overhead_s": 194.22,
+  "N_per_s": 0.34,
+  "avg_t": 2.701,
+  "last30_calls_s": [
+   2.7
+  ],
+  "error": ""
+ },
+ {
+  "label": "preemit_2000",
+  "budget_s": 0.2,
+  "wall_s": 0.0,
+  "attempts": 0,
+  "N": 2000,
+  "fire_rate": 2000.0,
+  "val_s": 0.0,
+  "overhead_s": 0.0,
+  "N_per_s": 505155.363,
+  "avg_t": 0.0,
+  "last30_calls_s": [],
+  "error": ""
+ }
+]

@@ -1,0 +1,52 @@
+{
+ "date": "2026-08-08",
+ "gate": "RS-GATE v1",
+ "ref": "TEST_GO",
+ "overall": "PASS",
+ "public_score": 88.1,
+ "private_values": [
+  "5.20",
+  "11.30"
+ ],
+ "multi_stats": {
+  "plain": {
+   "v": 5,
+   "pf": 1.0
+  },
+  "bare": {
+   "v": 3,
+   "pf": 1.0
+  },
+  "multi_plain": {
+   "v": 8,
+   "pf": 2.0
+  },
+  "multi_bare": {
+   "v": 0,
+   "pf": 0.0
+  }
+ },
+ "multi_verdict": "GO_A2",
+ "items": [
+  {
+   "item": "G1_no_fatal_error",
+   "status": "PASS",
+   "detail": "no fatal markers"
+  },
+  {
+   "item": "G2_public_score",
+   "status": "PASS",
+   "detail": "public=88.1 min=84.93 promote=87.93 (promoted)"
+  },
+  {
+   "item": "G3_private_rows",
+   "status": "PASS",
+   "detail": "parsed private values=['5.20', '11.30'] (>=2 needed to fill E)"
+  },
+  {
+   "item": "G4_A1_multipost_verdict",
+   "status": "PASS",
+   "detail": "max multi pf=2.0 stats={'plain': {'v': 5, 'pf': 1.0}, 'bare': {'v': 3, 'pf': 1.0}, 'multi_plain': {'v': 8, 'pf': 2.0}, 'multi_bare': {'v': 0, 'pf': 0.0}} verdict=GO_A2"
+  }
+ ]
+}

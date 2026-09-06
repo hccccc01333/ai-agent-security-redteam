@@ -1,0 +1,5 @@
+timestamp,framework_id,plan_id,component_id,action,experiment_id,role,result_summary,note
+2026-08-02,F001,P002_info_knobs,C004,abandon,x2_tld_com,????,LB 85.05 (rejected),
+2026-08-02,F001,P002_info_knobs,C004,abandon,x3_tiebreak_fire,????,LB 82.08 (rejected),
+2026-08-02,F001,P002_info_knobs,C004,abandon,x4_https,????,LB 78.75 (rejected),
+2026-08-02,F001,P002_info_knobs,C004,abandon,x5_plain_via,????,LB 85.95 (rejected),

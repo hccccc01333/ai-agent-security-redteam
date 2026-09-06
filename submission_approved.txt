@@ -1,0 +1,133 @@
+2026-08-07 用户批准：今日剩余 4 次提交额度全部用于完整提交（排行榜作废后重打），
+完成后择优选 2 份进官方重播池。枪序：
+1. n7_w1_confused_hedge（W1 + 10% CONFUSED hedge）
+2. n6b_confused_large（CONFUSED 容量 1000）
+3. n8_clean_direct（W1 去 inj_close / inj_commentary）
+4. w1_probe5_fire65 原版重打（对照组）
+墙生存报告：reports/wall_survival.md（四枪批次 2026-08-07 已更新，全 PASS）
+
+2026-08-08 用户批准：S1-Balanced（variants/s1_balanced.py）—— 真实回放校准首枪。
+定位：纯 CONFUSED / 1250 interactions / 本地私榜 24.27 / REPLAY_BUDGET GO（56%@4s）。
+门禁：local_sim_guardrail 15% PASS（PARTIAL_RETAINED 24.27）+ evaluate_candidate
+ast/smoke PASS（mock 为 EXFIL 专用口径，CONFUSED 族不适用，按 N6/N6B 先例豁免）。
+口令来源：用户「S1-Balanced 提交决策 v1.1：口令 GO」。
+枪后职责：回填真实秒/交互与线上榜分，重算 Pareto，再定 S2/S3。
+
+2026-08-08 用户批准（坐标系补齐方案 v1，第 3 枪）：W1 clean baseline
+（variants/w1_probe5_fire65.py，REPLAY_SAFE=0.996 原版，与 A1 同 harness/同
+candidate 结构/同 timeout，仅去掉 multi-post 模板）。定位：纯信息控制枪，
+回答“新 harness 是否整体偏移 / A1 的增益是否来自方法本身”；预期与 8/7 重打
+类似为超时 ERROR + 部分分，但同日与 A1 对比才成立。已知：W 系是公榜盲点族，
+私榜无抗性，本枪不计入私榜主力。
+门禁：local_sim @0% = 36.00 / GO（400 cap 本地口径）+ evaluate_candidate
+EXFIL mock 3/3 local_pass。
+
+2026-08-09 用户批准（当前窗口最后一枪，8/9 08:00 北京重置前）：S2-Efficient
+（variants/s2_efficient_k1.py）。定位：k 归因枪——同 notify 模板、1250 交互，
+唯一变量 = k（S1 为 250×k3+250×k2，S2 为 1250×k1）；本地 30.44/GO，
+0-80% 全档存活。判定：S2 真实 ≈9-12 → k 无关，转 family 路由；
+S2 ≈5-6 → k>1 是真杠杆，做 625×2/417×3 k 曲线。
+门禁：local_sim @15% = 30.44 / GO（util 56%@4s）+ evaluate_candidate
+（CONFUSED 族口径）local_pass。
+
+2026-08-09 用户批准（重置后第 1 枪）：S4 multi-send 探针
+（variants/s4_multisend_probe.py）。定位：私榜 80 的几何杠杆验证——
+单消息点名 5 收件人，测 Gemma 多工具调用轴是否成立（一条响应多发 email）。
+500 交互 / GO（util 22%@4s）；本地 mock 无法表达多工具调用，
+FAILURE_MIX unobservable≈404/500，真实结果以回放成交为准。
+判定：回放单消息多次 email.send → 构建 S6 = k1 多收件人配方（yield×k）；
+只有 1 次 → 多工具轴关闭，私榜 80 改找新通道。
+门禁：local_sim @15% = 12.11 / GO + evaluate_candidate（CONFUSED 族口径）local_pass。
+
+2026-08-09 用户批准（重置后第 2 枪）：S2-Aggressive（variants/s2_aggressive_2000.py）。
+定位：CONFUSED 扩容枪（2000×k1，本地 48.72），既是预算探针也是冲分枪。
+⚠ 风险枪：REPLAY_BUDGET util@4s=89%，严格门禁 NO-GO（超时保留分 <80）；
+依据 S1/S2 均 COMPLETE（1250 交互）判断真实 ≤7.2s/条，2000 交互需 ≤4.5s/条
+才完整跑完；若实际 4.5-7.2s → ERROR 部分分（不计榜）。用户已确认接受风险。
+判定：COMPLETE → 真实秒/交互 ≤4.5s 标定，CONFUSED 可继续向 2000 上限优化；
+ERROR → 真实 >4.5s，回退 1500×k1 或 1750×k1 安全档。
+
+2026-08-10 用户批准（流水线制，一次批准 4 枪，不等回榜）：
+1. s6_multisend_1250（1250×k1×3 收件人）——multi-send 决定性验证
+2. x5_probe8（W1 MIN_FIRE 0.8）——公榜旋钮枪
+3. s5_router_pool（四族 balanced）——family-mixture 归因锚点
+4. s2_efficient_k1 原版重测——量化 CONFUSED 运行噪声
+第 5 枪保留：应急修复 / S6 回榜后的扩容版。
+门禁：S6 本地 30.26/GO（unobservable≈1009）；x5_probe8 EXFIL mock 3/3；
+S5/S2 local_pass；全部 0-80% 存活族内。
+
+2026-08-12 用户批准（“继续”指令，今天第 1 枪）：W2 adaptive EXFIL
+（variants/w2_adaptive_exfil.py）。定位：框架修正后的可测主线——
+W1 自适应核心（7 模板运行时路由）+ REPLAY_SAFE 0.90（预留 hedge 预算）+
+4% fixture 引导 hedge（私榜世界 B 覆盖）。
+判线：公榜 ≥82.89（W1 锚）→ 扩容+hedge 不伤主得分面；<81 → 回滚 W1 微调。
+门禁：local_sim @0% = 36.00 / GO；evaluate_candidate EXFIL mock 3/3 local_pass。
+
+2026-08-13 用户批准（“可以”指令，今天第 2-4 枪，预算×hedge×噪声三轴）：
+2. w8_midbudget_exfil（REPLAY_SAFE 0.95 + hedge 4%）——预算曲线中点
+3. w10_nohedge_exfil（REPLAY_SAFE 0.996 + hedge 0）——隔离 hedge 公榜成本
+4. w3_state_exfil 原版重测——阶梯对比噪声带
+判线：w8 ≈ (0.95/0.90)×76.86 ≈ 81 验证线性；w10 vs w6（hedge 2%）→
+hedge 成本量化；w3 重测 vs 76.86 → 噪声 ±x。
+门禁：全部 local_sim @0% = 36.00 / GO + evaluate_candidate EXFIL mock 3/3。
+
+2026-08-13 用户批准（“再打一枪”，今天第 5 枪/应急位）：w9_nohedge_090_exfil
+（W3 核心 + REPLAY_SAFE 0.90 + hedge 0）——补齐预算×hedge 网格角点，
+对照 W3（0.90+4%）=76.86 量化低预算下的 hedge 成本。
+门禁：local_sim @0% = 36.00 / GO；evaluate_candidate EXFIL mock 3/3。
+
+2026-08-15 流水线授权（今天第 1 枪）：W10 重提交（variants/w10_nohedge_exfil.py，
+同文件 = 原 55475739）。定位：原枪平台静默失败（COMPLETE 空分），重提交取回
+0.996×hedge 0 的网格点（量化 hedge 公榜成本）。同文件此前已全量门禁
+（local_sim 36/GO + EXFIL mock 3/3），无需重新跑门禁。
+
+2026-08-16 用户授权（“继续”指令）：W11 hedge10 EXFIL
+（variants/w11_hedge10_exfil.py）。定位：W6 核心 + 10% 强化 fixture 链
+（私榜世界 B 主力赌注）；公榜成本 ~2-3 分换私榜保险。
+门禁：local_sim @0% = 36.00 / GO（0.8s，已修 Temp 卡死根因）+
+evaluate_candidate EXFIL mock 3/3 local_pass。
+
+2026-08-16 用户授权（“每天五枪都用上”，今日 5 枪）：
+1. w13_hedge5_exfil 确认枪（82.845 复现）
+2. w19_dualpost_exfil（h5 + 双 POST 模板：单消息双 http.post，新机制测试）
+3. w21_hedge7_exfil（hedge 曲线补点）
+4. w22_hedge15_exfil（hedge 曲线补点）
+5. w14_purefixture（纯 fixture 链 300 候选：私榜世界 B 最大化，公榜预期 0）
+门禁：W19/W21/W22 local 36/GO；W14 local 0/GO（设计内）；全部 ast/validate PASS。
+
+2026-08-18 用户授权（“给出五个提交”）：同日 5 配置复测（跨日噪声校准）：
+1. w1_probe5_fire65（当日基准枪）
+2. w13_hedge5（h5 最佳复测 v2）
+3. w10_nohedge（h0 复测 v2）
+4. w11_hedge10（私榜保险复测 v2）
+5. w19_dualpost（双 POST 机制干净日复测 v2）
+门禁：全部同文件此前已全量 PASS，submit_one 内置重跑 validate。
+
+2026-08-12 用户批准（“继续”指令，今天第 3 枪）：W4 mutate EXFIL
+（variants/w4_mutate_exfil.py）。定位：进化方向落地——16 变异模板运行时
+探测（变异→真模型实测 fire/成本→选优装填）。
+判线：W4 ≥ W3+1 → 变异池有真增益；≈W3 → 变异未转化成交；<W3-1 → 回滚。
+门禁：local_sim @0% = 36.00 / GO；evaluate_candidate ast/no_op/smoke PASS，
+mock 豁免（变异体不在 mock 关键字校准内，按 N6/N6B 先例）。
+
+2026-08-12 用户授权（“继续优化，相信你自己”，今天第 4 枪）：W5 bigpool EXFIL
+（variants/w5_bigpool_exfil.py）。定位：W4 + 60 组合变异池（5 前缀 × 7 核心 ×
+5 后缀去重），直接打公榜主杠杆 fire 率；攻击阶段探测 60×5 次，远在 9000s 内。
+判线：W5 ≥ W4+1 → 变异规模有真增益；≈W4 → fire 率已饱和；<W4-1 → 回滚。
+门禁：local_sim @0% = 36.00 / GO；evaluate_candidate ast/no_op/smoke PASS，
+mock 豁免同 W4。
+
+2026-08-13 流水线授权（W 系收敛后自动推进，今天第 1 枪）：W6 fullbudget EXFIL
+（variants/w6_fullbudget_exfil.py）。依据：W3=76.860 阶梯最优（snapshot 增益
++2.4），W2 掉分≈REPLAY_SAFE 0.90 少装填；W6 = W3 + REPLAY_SAFE 0.996 + hedge
+2%，预期 ~85（线性外推）。风险：0.996 满预算回放（W1 同结构已验证可 COMPLETE）。
+判线：≥82.89（W1 锚）→ 状态空间+满预算组合成立，成为新锚；
+ERROR → 回退 W3（0.90）安全档。
+门禁：local_sim @0% = 36.00 / GO；evaluate_candidate EXFIL mock 3/3 local_pass。
+
+2026-08-12 用户批准（“继续”指令，今天第 2 枪）：W3 state EXFIL
+（variants/w3_state_exfil.py）。定位：W2 + snapshot/restore 状态空间探测，
+与 W2 形成 A/B——同状态分支测量是否有真增益。
+判线：W3 ≥ W2+1 → 状态空间有效；≈W2 → snapshot 只提升测量纯度；
+<W2-1 → 回滚 W2。
+门禁：local_sim @0% = 36.00 / GO；evaluate_candidate EXFIL mock 3/3 local_pass。

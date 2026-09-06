@@ -1,0 +1,12 @@
+{
+ "date": "2026-08-08",
+ "blocker": "no real private rows available locally (API privateScore empty; no guardrail=private logs)",
+ "how_to_fill": "paste kernel Output for these refs; each contains [GATEWAY] gpt_oss_public/.../gemma_private = ...",
+ "refs": [
+  "55177036 (W1)",
+  "55226459 (x5)",
+  "55312630 (n6)",
+  "55313760 (n7)",
+  "55313831 (n6b)"
+ ]
+}

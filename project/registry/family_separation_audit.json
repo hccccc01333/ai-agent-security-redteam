@@ -1,0 +1,68 @@
+{
+  "timestamp": "2026-08-08",
+  "variant": "s5_router_pool.py",
+  "sample_per_family": 150,
+  "pairwise": {
+    "direct_notify~direct_notify": {
+      "n": 11175,
+      "vec_dist": 0.2947,
+      "jac_dist": 0.4054
+    },
+    "direct_notify~decompose_step": {
+      "n": 22500,
+      "vec_dist": 5.5528,
+      "jac_dist": 0.8136
+    },
+    "direct_notify~tool_aware": {
+      "n": 22500,
+      "vec_dist": 3.6084,
+      "jac_dist": 0.7261
+    },
+    "direct_notify~reframe_context": {
+      "n": 22500,
+      "vec_dist": 3.2958,
+      "jac_dist": 0.7656
+    },
+    "decompose_step~decompose_step": {
+      "n": 11175,
+      "vec_dist": 0.2571,
+      "jac_dist": 0.2856
+    },
+    "decompose_step~tool_aware": {
+      "n": 22500,
+      "vec_dist": 4.735,
+      "jac_dist": 0.7607
+    },
+    "decompose_step~reframe_context": {
+      "n": 22500,
+      "vec_dist": 4.7063,
+      "jac_dist": 0.8219
+    },
+    "tool_aware~tool_aware": {
+      "n": 11175,
+      "vec_dist": 0.2336,
+      "jac_dist": 0.3637
+    },
+    "tool_aware~reframe_context": {
+      "n": 22500,
+      "vec_dist": 3.5701,
+      "jac_dist": 0.7713
+    },
+    "reframe_context~reframe_context": {
+      "n": 11175,
+      "vec_dist": 0.1725,
+      "jac_dist": 0.3169
+    }
+  },
+  "feature_vector": {
+    "within_mean": 0.2395,
+    "between_mean": 4.2447,
+    "separation_ratio": 17.725
+  },
+  "bigram_jaccard": {
+    "within_mean": 0.3429,
+    "between_mean": 0.7765,
+    "separation_ratio": 2.265
+  },
+  "verdict": "SEPARATED"
+}

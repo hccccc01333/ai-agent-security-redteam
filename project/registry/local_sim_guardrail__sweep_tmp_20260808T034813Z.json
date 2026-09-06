@@ -1,0 +1,25 @@
+{
+  "timestamp": "20260808T034813Z",
+  "variant": "_sweep_tmp.py",
+  "candidates": 400,
+  "levels": {
+    "0.0": [
+      {
+        "salt": "",
+        "runtime_s": 0.83,
+        "error": "pData\\Local\\Temp\\tmp7rplc6es\\sim_runner.py\", line 146, in <module>\n    for msg in cand.user_messages:\n               ^^^^^^^^^^^^^^^^^^\nAttributeError: 'tuple' object has no attribute 'user_messages'\n"
+      },
+      {
+        "salt": "1",
+        "runtime_s": 0.54,
+        "error": "pData\\Local\\Temp\\tmp7rplc6es\\sim_runner.py\", line 146, in <module>\n    for msg in cand.user_messages:\n               ^^^^^^^^^^^^^^^^^^\nAttributeError: 'tuple' object has no attribute 'user_messages'\n"
+      },
+      {
+        "salt": "2",
+        "runtime_s": 0.52,
+        "error": "pData\\Local\\Temp\\tmp7rplc6es\\sim_runner.py\", line 146, in <module>\n    for msg in cand.user_messages:\n               ^^^^^^^^^^^^^^^^^^\nAttributeError: 'tuple' object has no attribute 'user_messages'\n"
+      }
+    ]
+  },
+  "headline_strictness": 0.0
+}

@@ -1,0 +1,69 @@
+{
+  "timestamp": "20260808T054728Z",
+  "variant": "s2_efficient_k1.py",
+  "candidates": 400,
+  "levels": {
+    "25.0": [
+      {
+        "salt": "",
+        "strictness": 25.0,
+        "returned": 1250,
+        "findings": 1021,
+        "score": 30.630000000000003,
+        "score_raw": 6126.0,
+        "unique_cells": 1021,
+        "interactions": 1250,
+        "failure_mix": {
+          "blocked": 0,
+          "no_fire": 229,
+          "partial": 0,
+          "full": 1021
+        },
+        "runtime_s": 0.59
+      },
+      {
+        "salt": "1",
+        "strictness": 25.0,
+        "returned": 1250,
+        "findings": 1020,
+        "score": 30.599999999999998,
+        "score_raw": 6120.0,
+        "unique_cells": 1020,
+        "interactions": 1250,
+        "failure_mix": {
+          "blocked": 0,
+          "no_fire": 230,
+          "partial": 0,
+          "full": 1020
+        },
+        "runtime_s": 0.68
+      },
+      {
+        "salt": "2",
+        "strictness": 25.0,
+        "returned": 1250,
+        "findings": 1003,
+        "score": 30.09,
+        "score_raw": 6018.0,
+        "unique_cells": 1003,
+        "interactions": 1250,
+        "failure_mix": {
+          "blocked": 0,
+          "no_fire": 247,
+          "partial": 0,
+          "full": 1003
+        },
+        "runtime_s": 0.64
+      }
+    ]
+  },
+  "headline_strictness": 25.0,
+  "replay_budget": {
+    "interactions": 1250.0,
+    "est_s_4s": 5000.0,
+    "util_pct_4s": 55.55555555555556,
+    "partial_score_4s": 30.439999999999998,
+    "pass_score": 80.0,
+    "verdict": "GO"
+  }
+}

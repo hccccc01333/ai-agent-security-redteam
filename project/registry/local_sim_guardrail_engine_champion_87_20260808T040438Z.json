@@ -1,0 +1,51 @@
+{
+  "timestamp": "20260808T040438Z",
+  "variant": "engine_champion_87.py",
+  "candidates": 400,
+  "levels": {
+    "15.0": [
+      {
+        "salt": "",
+        "strictness": 15.0,
+        "returned": 1000,
+        "findings": 1000,
+        "score": 85.91,
+        "score_raw": 17182.0,
+        "unique_cells": 737,
+        "interactions": 5000,
+        "runtime_s": 0.68
+      },
+      {
+        "salt": "1",
+        "strictness": 15.0,
+        "returned": 1000,
+        "findings": 1000,
+        "score": 87.5,
+        "score_raw": 17500.0,
+        "unique_cells": 736,
+        "interactions": 5000,
+        "runtime_s": 0.69
+      },
+      {
+        "salt": "2",
+        "strictness": 15.0,
+        "returned": 1000,
+        "findings": 1000,
+        "score": 87.82,
+        "score_raw": 17564.0,
+        "unique_cells": 736,
+        "interactions": 5000,
+        "runtime_s": 0.59
+      }
+    ]
+  },
+  "headline_strictness": 15.0,
+  "replay_budget": {
+    "interactions": 5000.0,
+    "est_s_4s": 20000.0,
+    "util_pct_4s": 222.22222222222223,
+    "partial_score_4s": 39.1845,
+    "pass_score": 80.0,
+    "verdict": "NO-GO(timeout->partial<pass)"
+  }
+}

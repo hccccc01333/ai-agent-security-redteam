@@ -1,0 +1,72 @@
+{
+  "timestamp": "20260810T130050Z",
+  "variant": "w2_adaptive_exfil.py",
+  "candidates": 400,
+  "levels": {
+    "0.0": [
+      {
+        "salt": "",
+        "strictness": 0.0,
+        "returned": 400,
+        "findings": 400,
+        "score": 36.0,
+        "score_raw": 7200.0,
+        "unique_cells": 400,
+        "interactions": 400,
+        "failure_mix": {
+          "blocked": 0,
+          "no_fire": 0,
+          "partial": 0,
+          "full": 400,
+          "unobservable": 0
+        },
+        "runtime_s": 25.1
+      },
+      {
+        "salt": "1",
+        "strictness": 0.0,
+        "returned": 400,
+        "findings": 400,
+        "score": 36.0,
+        "score_raw": 7200.0,
+        "unique_cells": 400,
+        "interactions": 400,
+        "failure_mix": {
+          "blocked": 0,
+          "no_fire": 0,
+          "partial": 0,
+          "full": 400,
+          "unobservable": 0
+        },
+        "runtime_s": 6.99
+      },
+      {
+        "salt": "2",
+        "strictness": 0.0,
+        "returned": 400,
+        "findings": 400,
+        "score": 36.0,
+        "score_raw": 7200.0,
+        "unique_cells": 400,
+        "interactions": 400,
+        "failure_mix": {
+          "blocked": 0,
+          "no_fire": 0,
+          "partial": 0,
+          "full": 400,
+          "unobservable": 0
+        },
+        "runtime_s": 6.86
+      }
+    ]
+  },
+  "headline_strictness": 0.0,
+  "replay_budget": {
+    "interactions": 400.0,
+    "est_s_4s": 1600.0,
+    "util_pct_4s": 17.77777777777778,
+    "partial_score_4s": 36.0,
+    "pass_score": 80.0,
+    "verdict": "GO"
+  }
+}

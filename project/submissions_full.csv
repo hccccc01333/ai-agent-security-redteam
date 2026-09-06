@@ -1,0 +1,51 @@
+﻿ref,date,description,status,publicScore,privateScore,fileName
+55158701,2026-08-01T09:09:41,V5 Q5 v12 host label aa ab suffix REPLAY0.996,complete,84.780,,submission.csv
+55158697,2026-08-01T09:09:31,V4 Q5 adaptive margin floor4 coef2.5 REPLAY0.996,complete,,,submission.csv
+55158662,2026-08-01T09:07:40,V3 v12 single fill no probe slow=inj_close fast=VERBOSE,complete,81.720,,submission.csv
+55158632,2026-08-01T09:06:12,V2 Q5 + v12 replay sizing warmup deduct REPLAY0.996,complete,84.060,,submission.csv
+55158612,2026-08-01T09:05:15,V1 Q5 forge + v12 latency split fill 8-classify inj_close/VERBOSE,complete,85.860,,submission.csv
+55141300,2026-07-31T15:25:20,U5 Q5 + haodou MARGIN45/1.2 REPLAY0.994,complete,,,submission.csv
+55141278,2026-07-31T15:24:34,U4 Q5 + dual-template 2:1 fill top-2,complete,68.535,,submission.csv
+55141242,2026-07-31T15:23:29,U3 Q5 + tetsutani MIN_FIRE=0.2,complete,85.140,,submission.csv
+55141215,2026-07-31T15:22:39,U2 Q5 + short hosts T3 stack,complete,,,submission.csv
+55141192,2026-07-31T15:21:49,U1 Q5 + latency route slow inj fast bare pool,complete,75.060,,submission.csv
+55098405,2026-07-30T03:29:51,E5 Rokaiya prefer bare_* when eligible,complete,64.665,,submission.csv
+55098399,2026-07-30T03:29:06,E4 Tensorliu multi-msg + REPLAY_SAFE cap,complete,53.990,,submission.csv
+55098381,2026-07-30T03:28:22,E3 Rokaiya PROBE_REPS=3 MIN_FIRE=0.34,complete,83.970,,submission.csv
+55098364,2026-07-30T03:27:35,E2 Rokaiya REPLAY_SAFE=0.996,complete,85.770,,submission.csv
+55098347,2026-07-30T03:26:50,E1 pack: Rokaiya + fire-lat fill + selected seed,complete,81.900,,submission.csv
+55074074,2026-07-29T06:35:09,T5 Q5 micro REPLAY_SAFE=0.9965,complete,83.430,,submission.csv
+55074005,2026-07-29T06:31:33,T4 Q5 + bare_ok answer OK only,complete,,,submission.csv
+55073585,2026-07-29T06:09:26,T3 Q5 + shorter unique hosts 1then2 chars,complete,85.905,,submission.csv
+55073566,2026-07-29T06:08:36,T2 Q5 + shorter inj_commentary prefix,complete,,,submission.csv
+55073549,2026-07-29T06:07:44,T1 Q5 micro empty analysis + newline before end,complete,85.050,,submission.csv
+55043430,2026-07-28T02:44:42,S5 Q5 micro MARGIN_S=55,complete,82.350,,submission.csv
+55043412,2026-07-28T02:44:00,S4 Q5 micro inj_close analysis body=ok,complete,86.670,,submission.csv
+55043400,2026-07-28T02:43:18,S3 Q5 micro inj_close analysis body=.,complete,85.185,,submission.csv
+55043387,2026-07-28T02:42:36,S2 Q5 micro MIN_FIRE=0.33,complete,87.255,,submission.csv
+55043369,2026-07-28T02:41:47,S1 Q5 micro REPLAY_SAFE=0.995,complete,86.670,,submission.csv
+55015391,2026-07-27T01:37:32,R5 Q5 + fire-latency fill_unit only,complete,82.755,,submission.csv
+55015381,2026-07-27T01:36:50,R4 Q5 + always fill inj_close when eligible,complete,71.595,,submission.csv
+55015365,2026-07-27T01:35:55,R3 Q5 + soft-prefer inj within 1.15x,complete,76.995,,submission.csv
+55015349,2026-07-27T01:35:12,R2 Q5 + MIN_FIRE=0.32,complete,78.030,,submission.csv
+55015326,2026-07-27T01:34:19,R1 Q5 + empty forge inj_close and inj_commentary,complete,,,submission.csv
+54994600,2026-07-26T07:26:42,Q5 F1 micro empty analysis forge inj_close,complete,87.795,,submission.csv
+54994586,2026-07-26T07:26:03,Q4 F1 micro plain Then answer OK only,complete,83.025,,submission.csv
+54994565,2026-07-26T07:25:17,Q3 F1 micro MARGIN_S=50 keep MULT=1.35,complete,79.650,,submission.csv
+54994099,2026-07-26T07:01:16,Q2 F1 micro MIN_FIRE=0.32,complete,84.510,,submission.csv
+54994080,2026-07-26T07:00:25,Q1 F1 micro REPLAY_SAFE=0.997,complete,83.835,,submission.csv
+54979493,2026-07-25T16:01:11,P5 F1+3-template race plain/bare/bare_ok only,complete,64.170,,submission.csv
+54979479,2026-07-25T16:00:18,P4 F1+REPLAY_SAFE=0.998 push packing,complete,78.030,,submission.csv
+54979462,2026-07-25T15:59:33,P3 F1+MARGIN_S=45 MARGIN_MULT=1.2 more fill search,complete,83.565,,submission.csv
+54979446,2026-07-25T15:58:40,P2 F1+hard latency route slow=inj fast=bare,complete,70.920,,submission.csv
+54978930,2026-07-25T15:33:21,P1 F1+MIN_FIRE=0.2 tetsutani-style looser select,complete,79.290,,submission.csv
+54941240,2026-07-24T02:43:39,D F1xF2 + host-dedup fill stride search structure,complete,78.210,,submission.csv
+54941230,2026-07-24T02:42:53,C F1xF2 + optional M=2 multi pessimistic replay,complete,84.150,,submission.csv
+54941214,2026-07-24T02:42:07,B F1xF2 + light secondary-template 80/20 EXFIL mix,complete,69.345,,submission.csv
+54941200,2026-07-24T02:41:22,A F1xF2 + latency model route bare/inj soft prefer,complete,84.465,,submission.csv
+54940984,2026-07-24T02:28:31,H1 F1xF4: REPLAY_SAFE=0.996 + MIN_FIRE=0.30,complete,80.595,,submission.csv
+54925044,2026-07-23T09:57:47,G1 multimsg+route retry after system ERROR,error,,,submission.csv
+54917182,2026-07-23T02:28:06,G2 cell diversity: E3 + skip duplicate score_cell hashes,complete,,,submission.csv
+54917169,2026-07-23T02:27:17,G1 multimsg+route: Tensorliu shape + REPLAY_SAFE M=12,error,,,submission.csv
+54916947,2026-07-23T02:10:45,F2 E3+fire-lat fill+selected seed,complete,76.995,,submission.csv
+54916941,2026-07-23T02:10:22,F4 E3 MIN_FIRE=0.30 allow 1/3,complete,84.780,,submission.csv

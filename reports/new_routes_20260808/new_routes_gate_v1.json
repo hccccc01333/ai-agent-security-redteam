@@ -1,0 +1,42 @@
+{
+ "date": "2026-08-08",
+ "gate": "NR-GATE v1",
+ "overall": "READY_WITH_WARN",
+ "items": [
+  {
+   "item": "G1_A_multi_post_scorer",
+   "status": "PASS",
+   "detail": "k2 raw=34.0 k5 raw=82.0 (expect 34/82)"
+  },
+  {
+   "item": "G2_B_overshoot_curve",
+   "status": "PASS",
+   "detail": "replay_overshoot_curve.csv + replay_overshoot_meta.json exist"
+  },
+  {
+   "item": "G3_C_dual_eval",
+   "status": "PASS",
+   "detail": "raw dual=22.0 break_even_p=0.7364"
+  },
+  {
+   "item": "G4_E_private_calibration",
+   "status": "WARN",
+   "detail": "WARN real private rows not filled yet (paste kernel Output)"
+  },
+  {
+   "item": "G5_A1_variant_gate",
+   "status": "PASS",
+   "detail": "registry status=local_pass audits={'ast': 'pass', 'no_op': 'pass', 'smoke_allow': 'pass', 'smoke_optimal': 'pass', 'smoke_optimal_s456': 'pass', 'mock_selection': 'pass', 'mock_stability': 'pass (3 salts)'}"
+  },
+  {
+   "item": "G6_unified_g3_gate",
+   "status": "PASS",
+   "detail": "gate_w1_multi_post_probe.md verdict=PASS"
+  },
+  {
+   "item": "G7_user_explicit_go",
+   "status": "PASS",
+   "detail": "manual: wait for user's explicit '提交' before submitting"
+  }
+ ]
+}

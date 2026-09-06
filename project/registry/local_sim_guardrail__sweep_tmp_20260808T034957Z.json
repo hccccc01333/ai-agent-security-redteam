@@ -1,0 +1,40 @@
+{
+  "timestamp": "20260808T034957Z",
+  "variant": "_sweep_tmp.py",
+  "candidates": 400,
+  "levels": {
+    "15.0": [
+      {
+        "salt": "",
+        "strictness": 15.0,
+        "returned": 700,
+        "findings": 699,
+        "score": 61.949999999999996,
+        "score_raw": 12390.0,
+        "unique_cells": 671,
+        "runtime_s": 0.57
+      },
+      {
+        "salt": "1",
+        "strictness": 15.0,
+        "returned": 700,
+        "findings": 700,
+        "score": 62.7,
+        "score_raw": 12540.0,
+        "unique_cells": 686,
+        "runtime_s": 0.63
+      },
+      {
+        "salt": "2",
+        "strictness": 15.0,
+        "returned": 700,
+        "findings": 700,
+        "score": 63.79,
+        "score_raw": 12758.0,
+        "unique_cells": 681,
+        "runtime_s": 0.61
+      }
+    ]
+  },
+  "headline_strictness": 15.0
+}

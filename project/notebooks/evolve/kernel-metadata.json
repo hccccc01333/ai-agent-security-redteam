@@ -1,0 +1,24 @@
+{
+  "id": "afterrain42/jed-evolve",
+  "title": "JED Evolve",
+  "code_file": "evolve.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "keywords": [
+    "ai-security",
+    "evolution",
+    "go-explore"
+  ],
+  "dataset_sources": [],
+  "kernel_sources": [],
+  "competition_sources": [
+    "ai-agent-security-multi-step-tool-attacks"
+  ],
+  "model_sources": [
+    "llkh0a/gpt-oss-20b-gguf/pytorch/default/1"
+  ]
+}

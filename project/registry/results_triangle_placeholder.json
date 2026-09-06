@@ -1,0 +1,10 @@
+{
+  "w1_reps": [
+    {"ref": "55342360", "status": "PENDING", "public_score": null, "runtime_s": null},
+    {"ref": "55342547", "status": "PENDING", "public_score": null, "runtime_s": null}
+  ],
+  "a1": {"ref": "55341285", "status": "PENDING", "public_score": null, "runtime_s": null},
+  "s1": {"ref": "55340535", "status": "PENDING", "public_score": null, "runtime_s": null},
+  "n6b_score": 5.115,
+  "historical_w1": 87.93
+}

@@ -1,0 +1,51 @@
+{
+  "timestamp": "20260808T040436Z",
+  "variant": "s1_balanced.py",
+  "candidates": 400,
+  "levels": {
+    "15.0": [
+      {
+        "salt": "",
+        "strictness": 15.0,
+        "returned": 500,
+        "findings": 482,
+        "score": 24.25,
+        "score_raw": 4850.0,
+        "unique_cells": 441,
+        "interactions": 1250,
+        "runtime_s": 0.76
+      },
+      {
+        "salt": "1",
+        "strictness": 15.0,
+        "returned": 500,
+        "findings": 486,
+        "score": 24.07,
+        "score_raw": 4814.0,
+        "unique_cells": 443,
+        "interactions": 1250,
+        "runtime_s": 0.64
+      },
+      {
+        "salt": "2",
+        "strictness": 15.0,
+        "returned": 500,
+        "findings": 486,
+        "score": 24.5,
+        "score_raw": 4900.0,
+        "unique_cells": 446,
+        "interactions": 1250,
+        "runtime_s": 0.67
+      }
+    ]
+  },
+  "headline_strictness": 15.0,
+  "replay_budget": {
+    "interactions": 1250.0,
+    "est_s_4s": 5000.0,
+    "util_pct_4s": 55.55555555555556,
+    "partial_score_4s": 24.27333333333333,
+    "pass_score": 80.0,
+    "verdict": "GO"
+  }
+}

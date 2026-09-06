@@ -1,0 +1,17 @@
+{
+ "date": "2026-08-08",
+ "assumptions": {
+  "budget_s": 9000.0,
+  "baseline_counts": {
+   "gpt_oss": 770,
+   "gemma": 1266
+  },
+  "per_candidate_value": 18.0,
+  "cv": 0.2,
+  "baseline_fill": 0.9,
+  "dist": "lognormal",
+  "old_rule": "timeout => whole row 0.0 (REPLAY_SAFE conservative cap)",
+  "new_rule": "timeout preserves accumulated score (733058)"
+ },
+ "warning": "replay-time distribution is an assumption; true per-candidate latencies need real submission logs"
+}

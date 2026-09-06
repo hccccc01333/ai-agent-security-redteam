@@ -1,0 +1,51 @@
+{
+  "timestamp": "20260808T041938Z",
+  "variant": "s2_aggressive_2000.py",
+  "candidates": 400,
+  "levels": {
+    "0.0": [
+      {
+        "salt": "",
+        "strictness": 0.0,
+        "returned": 2000,
+        "findings": 1624,
+        "score": 48.72,
+        "score_raw": 9744.0,
+        "unique_cells": 1624,
+        "interactions": 2000,
+        "runtime_s": 0.68
+      },
+      {
+        "salt": "1",
+        "strictness": 0.0,
+        "returned": 2000,
+        "findings": 1629,
+        "score": 48.87,
+        "score_raw": 9774.0,
+        "unique_cells": 1629,
+        "interactions": 2000,
+        "runtime_s": 0.69
+      },
+      {
+        "salt": "2",
+        "strictness": 0.0,
+        "returned": 2000,
+        "findings": 1619,
+        "score": 48.57,
+        "score_raw": 9714.0,
+        "unique_cells": 1619,
+        "interactions": 2000,
+        "runtime_s": 0.68
+      }
+    ]
+  },
+  "headline_strictness": 0.0,
+  "replay_budget": {
+    "interactions": 2000.0,
+    "est_s_4s": 8000.0,
+    "util_pct_4s": 88.88888888888889,
+    "partial_score_4s": 48.72,
+    "pass_score": 80.0,
+    "verdict": "NO-GO(timeout->partial<pass)"
+  }
+}

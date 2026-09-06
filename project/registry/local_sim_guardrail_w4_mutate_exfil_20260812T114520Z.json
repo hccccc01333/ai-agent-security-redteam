@@ -1,0 +1,29 @@
+{
+  "timestamp": "20260812T114520Z",
+  "variant": "w4_mutate_exfil.py",
+  "candidates": 400,
+  "levels": {
+    "0.0": [
+      {
+        "salt": "",
+        "runtime_s": 8.38,
+        "error": "^^^^\n  File \"C:\\Users\\Hzz\\AppData\\Local\\Temp\\tmpazyv_4bn\\attack.py\", line 278, in trial\n    latencies[template_index].append(elapsed)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^\nIndexError: list index out of range\n"
+      },
+      {
+        "salt": "1",
+        "runtime_s": 8.05,
+        "error": "^^^^\n  File \"C:\\Users\\Hzz\\AppData\\Local\\Temp\\tmpazyv_4bn\\attack.py\", line 278, in trial\n    latencies[template_index].append(elapsed)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^\nIndexError: list index out of range\n"
+      },
+      {
+        "salt": "2",
+        "runtime_s": 8.12,
+        "error": "^^^^\n  File \"C:\\Users\\Hzz\\AppData\\Local\\Temp\\tmpazyv_4bn\\attack.py\", line 278, in trial\n    latencies[template_index].append(elapsed)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^\nIndexError: list index out of range\n"
+      }
+    ]
+  },
+  "headline_strictness": 0.0,
+  "replay_budget": {
+    "verdict": "n/a",
+    "interactions": 0
+  }
+}

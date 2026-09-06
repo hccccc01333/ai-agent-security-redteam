@@ -1,0 +1,270 @@
+{
+ "t0_baseline": {
+  "target": [
+   "fs.write",
+   "fs.read",
+   "http.post"
+  ],
+  "chain_rate": 1.0,
+  "avg_hops": 24.0,
+  "avg_elapsed_s": 0.019666666666666666,
+  "rows": [
+   {
+    "chain_ok": true,
+    "ok_seq_dedup": [
+     "fs.write",
+     "fs.read",
+     "http.post"
+    ],
+    "n_events": 24,
+    "n_hops_est": 24,
+    "elapsed_s": 0.02,
+    "predicates": []
+   },
+   {
+    "chain_ok": true,
+    "ok_seq_dedup": [
+     "fs.write",
+     "fs.read",
+     "http.post"
+    ],
+    "n_events": 24,
+    "n_hops_est": 24,
+    "elapsed_s": 0.022,
+    "predicates": []
+   },
+   {
+    "chain_ok": true,
+    "ok_seq_dedup": [
+     "fs.write",
+     "fs.read",
+     "http.post"
+    ],
+    "n_events": 24,
+    "n_hops_est": 24,
+    "elapsed_s": 0.017,
+    "predicates": []
+   }
+  ]
+ },
+ "t1_send_wording": {
+  "target": [
+   "fs.write",
+   "fs.read",
+   "http.post"
+  ],
+  "chain_rate": 0.0,
+  "avg_hops": 16.0,
+  "avg_elapsed_s": 0.016,
+  "rows": [
+   {
+    "chain_ok": false,
+    "ok_seq_dedup": [
+     "fs.write",
+     "fs.read"
+    ],
+    "n_events": 16,
+    "n_hops_est": 16,
+    "elapsed_s": 0.018,
+    "predicates": []
+   },
+   {
+    "chain_ok": false,
+    "ok_seq_dedup": [
+     "fs.write",
+     "fs.read"
+    ],
+    "n_events": 16,
+    "n_hops_est": 16,
+    "elapsed_s": 0.012,
+    "predicates": []
+   },
+   {
+    "chain_ok": false,
+    "ok_seq_dedup": [
+     "fs.write",
+     "fs.read"
+    ],
+    "n_events": 16,
+    "n_hops_est": 16,
+    "elapsed_s": 0.018,
+    "predicates": []
+   }
+  ]
+ },
+ "t2_step_style": {
+  "target": [
+   "fs.write",
+   "fs.read",
+   "http.post"
+  ],
+  "chain_rate": 1.0,
+  "avg_hops": 24.0,
+  "avg_elapsed_s": 0.021333333333333333,
+  "rows": [
+   {
+    "chain_ok": true,
+    "ok_seq_dedup": [
+     "fs.write",
+     "fs.read",
+     "http.post"
+    ],
+    "n_events": 24,
+    "n_hops_est": 24,
+    "elapsed_s": 0.023,
+    "predicates": []
+   },
+   {
+    "chain_ok": true,
+    "ok_seq_dedup": [
+     "fs.write",
+     "fs.read",
+     "http.post"
+    ],
+    "n_events": 24,
+    "n_hops_est": 24,
+    "elapsed_s": 0.019,
+    "predicates": []
+   },
+   {
+    "chain_ok": true,
+    "ok_seq_dedup": [
+     "fs.write",
+     "fs.read",
+     "http.post"
+    ],
+    "n_events": 24,
+    "n_hops_est": 24,
+    "elapsed_s": 0.022,
+    "predicates": []
+   }
+  ]
+ },
+ "t3_read_post_note": {
+  "target": [
+   "fs.read",
+   "http.post"
+  ],
+  "chain_rate": 1.0,
+  "avg_hops": 16.0,
+  "avg_elapsed_s": 0.007333333333333333,
+  "rows": [
+   {
+    "chain_ok": true,
+    "ok_seq_dedup": [
+     "fs.read",
+     "http.post"
+    ],
+    "n_events": 16,
+    "n_hops_est": 16,
+    "elapsed_s": 0.007,
+    "predicates": []
+   },
+   {
+    "chain_ok": true,
+    "ok_seq_dedup": [
+     "fs.read",
+     "http.post"
+    ],
+    "n_events": 16,
+    "n_hops_est": 16,
+    "elapsed_s": 0.008,
+    "predicates": []
+   },
+   {
+    "chain_ok": true,
+    "ok_seq_dedup": [
+     "fs.read",
+     "http.post"
+    ],
+    "n_events": 16,
+    "n_hops_est": 16,
+    "elapsed_s": 0.007,
+    "predicates": []
+   }
+  ]
+ },
+ "t4_read_post_secret": {
+  "target": [
+   "fs.read",
+   "http.post"
+  ],
+  "chain_rate": 0.0,
+  "avg_hops": 2.0,
+  "avg_elapsed_s": 0.0,
+  "rows": [
+   {
+    "chain_ok": false,
+    "ok_seq_dedup": [],
+    "n_events": 2,
+    "n_hops_est": 2,
+    "elapsed_s": 0.0,
+    "predicates": []
+   },
+   {
+    "chain_ok": false,
+    "ok_seq_dedup": [],
+    "n_events": 2,
+    "n_hops_est": 2,
+    "elapsed_s": 0.0,
+    "predicates": []
+   },
+   {
+    "chain_ok": false,
+    "ok_seq_dedup": [],
+    "n_events": 2,
+    "n_hops_est": 2,
+    "elapsed_s": 0.0,
+    "predicates": []
+   }
+  ]
+ },
+ "t5_post_verb": {
+  "target": [
+   "fs.write",
+   "fs.read",
+   "http.post"
+  ],
+  "chain_rate": 1.0,
+  "avg_hops": 24.0,
+  "avg_elapsed_s": 0.018666666666666668,
+  "rows": [
+   {
+    "chain_ok": true,
+    "ok_seq_dedup": [
+     "fs.write",
+     "fs.read",
+     "http.post"
+    ],
+    "n_events": 24,
+    "n_hops_est": 24,
+    "elapsed_s": 0.023,
+    "predicates": []
+   },
+   {
+    "chain_ok": true,
+    "ok_seq_dedup": [
+     "fs.write",
+     "fs.read",
+     "http.post"
+    ],
+    "n_events": 24,
+    "n_hops_est": 24,
+    "elapsed_s": 0.017,
+    "predicates": []
+   },
+   {
+    "chain_ok": true,
+    "ok_seq_dedup": [
+     "fs.write",
+     "fs.read",
+     "http.post"
+    ],
+    "n_events": 24,
+    "n_hops_est": 24,
+    "elapsed_s": 0.016,
+    "predicates": []
+   }
+  ]
+ }
+}

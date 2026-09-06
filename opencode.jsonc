@@ -1,0 +1,18 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "codex-bridge": {
+      "type": "local",
+      "command": [
+        "node",
+        "D:/AI数据分析/kaggle比赛/人工智能代理安全——多步工具攻击/.codex-bridge-toolkit/scripts/mcp_server.mjs"
+      ],
+      "cwd": "D:/AI数据分析/kaggle比赛/人工智能代理安全——多步工具攻击",
+      "environment": {
+        "CODEX_BRIDGE_EXECUTOR_PROVIDER": "opencode",
+        "OPENCODE_SERVER_URL": "http://127.0.0.1:4096"
+      },
+      "enabled": true
+    }
+  }
+}

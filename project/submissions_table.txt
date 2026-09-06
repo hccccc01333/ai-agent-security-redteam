@@ -1,0 +1,52 @@
+﻿     ref  fileName        date                        description                                                        status                     publicScore  privateScore  
+--------  --------------  --------------------------  -----------------------------------------------------------------  -------------------------  -----------  ------------  
+55158701  submission.csv  2026-08-01 09:09:41.650000  V5 Q5 v12 host label aa ab suffix REPLAY0.996                      SubmissionStatus.COMPLETE  84.780                     
+55158697  submission.csv  2026-08-01 09:09:31.733000  V4 Q5 adaptive margin floor4 coef2.5 REPLAY0.996                   SubmissionStatus.COMPLETE                             
+55158662  submission.csv  2026-08-01 09:07:40.460000  V3 v12 single fill no probe slow=inj_close fast=VERBOSE            SubmissionStatus.COMPLETE  81.720                     
+55158632  submission.csv  2026-08-01 09:06:12.503000  V2 Q5 + v12 replay sizing warmup deduct REPLAY0.996                SubmissionStatus.COMPLETE  84.060                     
+55158612  submission.csv  2026-08-01 09:05:15.397000  V1 Q5 forge + v12 latency split fill 8-classify inj_close/VERBOSE  SubmissionStatus.COMPLETE  85.860                     
+55141300  submission.csv  2026-07-31 15:25:20.690000  U5 Q5 + haodou MARGIN45/1.2 REPLAY0.994                            SubmissionStatus.COMPLETE                             
+55141278  submission.csv  2026-07-31 15:24:34.893000  U4 Q5 + dual-template 2:1 fill top-2                               SubmissionStatus.COMPLETE  68.535                     
+55141242  submission.csv  2026-07-31 15:23:29.430000  U3 Q5 + tetsutani MIN_FIRE=0.2                                     SubmissionStatus.COMPLETE  85.140                     
+55141215  submission.csv  2026-07-31 15:22:39.103000  U2 Q5 + short hosts T3 stack                                       SubmissionStatus.COMPLETE                             
+55141192  submission.csv  2026-07-31 15:21:49.493000  U1 Q5 + latency route slow inj fast bare pool                      SubmissionStatus.COMPLETE  75.060                     
+55098405  submission.csv  2026-07-30 03:29:51.027000  E5 Rokaiya prefer bare_* when eligible                             SubmissionStatus.COMPLETE  64.665                     
+55098399  submission.csv  2026-07-30 03:29:06.393000  E4 Tensorliu multi-msg + REPLAY_SAFE cap                           SubmissionStatus.COMPLETE  53.990                     
+55098381  submission.csv  2026-07-30 03:28:22.207000  E3 Rokaiya PROBE_REPS=3 MIN_FIRE=0.34                              SubmissionStatus.COMPLETE  83.970                     
+55098364  submission.csv  2026-07-30 03:27:35.747000  E2 Rokaiya REPLAY_SAFE=0.996                                       SubmissionStatus.COMPLETE  85.770                     
+55098347  submission.csv  2026-07-30 03:26:50.617000  E1 pack: Rokaiya + fire-lat fill + selected seed                   SubmissionStatus.COMPLETE  81.900                     
+55074074  submission.csv  2026-07-29 06:35:09.620000  T5 Q5 micro REPLAY_SAFE=0.9965                                     SubmissionStatus.COMPLETE  83.430                     
+55074005  submission.csv  2026-07-29 06:31:33.837000  T4 Q5 + bare_ok answer OK only                                     SubmissionStatus.COMPLETE                             
+55073585  submission.csv  2026-07-29 06:09:26.137000  T3 Q5 + shorter unique hosts 1then2 chars                          SubmissionStatus.COMPLETE  85.905                     
+55073566  submission.csv  2026-07-29 06:08:36.307000  T2 Q5 + shorter inj_commentary prefix                              SubmissionStatus.COMPLETE                             
+55073549  submission.csv  2026-07-29 06:07:44.293000  T1 Q5 micro empty analysis + newline before end                    SubmissionStatus.COMPLETE  85.050                     
+55043430  submission.csv  2026-07-28 02:44:42.860000  S5 Q5 micro MARGIN_S=55                                            SubmissionStatus.COMPLETE  82.350                     
+55043412  submission.csv  2026-07-28 02:44:00.127000  S4 Q5 micro inj_close analysis body=ok                             SubmissionStatus.COMPLETE  86.670                     
+55043400  submission.csv  2026-07-28 02:43:18.800000  S3 Q5 micro inj_close analysis body=.                              SubmissionStatus.COMPLETE  85.185                     
+55043387  submission.csv  2026-07-28 02:42:36.263000  S2 Q5 micro MIN_FIRE=0.33                                          SubmissionStatus.COMPLETE  87.255                     
+55043369  submission.csv  2026-07-28 02:41:47.540000  S1 Q5 micro REPLAY_SAFE=0.995                                      SubmissionStatus.COMPLETE  86.670                     
+55015391  submission.csv  2026-07-27 01:37:32.690000  R5 Q5 + fire-latency fill_unit only                                SubmissionStatus.COMPLETE  82.755                     
+55015381  submission.csv  2026-07-27 01:36:50.120000  R4 Q5 + always fill inj_close when eligible                        SubmissionStatus.COMPLETE  71.595                     
+55015365  submission.csv  2026-07-27 01:35:55.577000  R3 Q5 + soft-prefer inj within 1.15x                               SubmissionStatus.COMPLETE  76.995                     
+55015349  submission.csv  2026-07-27 01:35:12.470000  R2 Q5 + MIN_FIRE=0.32                                              SubmissionStatus.COMPLETE  78.030                     
+55015326  submission.csv  2026-07-27 01:34:19.577000  R1 Q5 + empty forge inj_close and inj_commentary                   SubmissionStatus.COMPLETE                             
+54994600  submission.csv  2026-07-26 07:26:42.840000  Q5 F1 micro empty analysis forge inj_close                         SubmissionStatus.COMPLETE  87.795                     
+54994586  submission.csv  2026-07-26 07:26:03.903000  Q4 F1 micro plain Then answer OK only                              SubmissionStatus.COMPLETE  83.025                     
+54994565  submission.csv  2026-07-26 07:25:17.550000  Q3 F1 micro MARGIN_S=50 keep MULT=1.35                             SubmissionStatus.COMPLETE  79.650                     
+54994099  submission.csv  2026-07-26 07:01:16.823000  Q2 F1 micro MIN_FIRE=0.32                                          SubmissionStatus.COMPLETE  84.510                     
+54994080  submission.csv  2026-07-26 07:00:25.923000  Q1 F1 micro REPLAY_SAFE=0.997                                      SubmissionStatus.COMPLETE  83.835                     
+54979493  submission.csv  2026-07-25 16:01:11.950000  P5 F1+3-template race plain/bare/bare_ok only                      SubmissionStatus.COMPLETE  64.170                     
+54979479  submission.csv  2026-07-25 16:00:18.383000  P4 F1+REPLAY_SAFE=0.998 push packing                               SubmissionStatus.COMPLETE  78.030                     
+54979462  submission.csv  2026-07-25 15:59:33.497000  P3 F1+MARGIN_S=45 MARGIN_MULT=1.2 more fill search                 SubmissionStatus.COMPLETE  83.565                     
+54979446  submission.csv  2026-07-25 15:58:40.237000  P2 F1+hard latency route slow=inj fast=bare                        SubmissionStatus.COMPLETE  70.920                     
+54978930  submission.csv  2026-07-25 15:33:21.870000  P1 F1+MIN_FIRE=0.2 tetsutani-style looser select                   SubmissionStatus.COMPLETE  79.290                     
+54941240  submission.csv  2026-07-24 02:43:39.917000  D F1xF2 + host-dedup fill stride search structure                  SubmissionStatus.COMPLETE  78.210                     
+54941230  submission.csv  2026-07-24 02:42:53.667000  C F1xF2 + optional M=2 multi pessimistic replay                    SubmissionStatus.COMPLETE  84.150                     
+54941214  submission.csv  2026-07-24 02:42:07.843000  B F1xF2 + light secondary-template 80/20 EXFIL mix                 SubmissionStatus.COMPLETE  69.345                     
+54941200  submission.csv  2026-07-24 02:41:22.077000  A F1xF2 + latency model route bare/inj soft prefer                 SubmissionStatus.COMPLETE  84.465                     
+54940984  submission.csv  2026-07-24 02:28:31.790000  H1 F1xF4: REPLAY_SAFE=0.996 + MIN_FIRE=0.30                        SubmissionStatus.COMPLETE  80.595                     
+54925044  submission.csv  2026-07-23 09:57:47.847000  G1 multimsg+route retry after system ERROR                         SubmissionStatus.ERROR                                
+54917182  submission.csv  2026-07-23 02:28:06.377000  G2 cell diversity: E3 + skip duplicate score_cell hashes           SubmissionStatus.COMPLETE                             
+54917169  submission.csv  2026-07-23 02:27:17.993000  G1 multimsg+route: Tensorliu shape + REPLAY_SAFE M=12              SubmissionStatus.ERROR                                
+54916947  submission.csv  2026-07-23 02:10:45.087000  F2 E3+fire-lat fill+selected seed                                  SubmissionStatus.COMPLETE  76.995                     
+54916941  submission.csv  2026-07-23 02:10:22.587000  F4 E3 MIN_FIRE=0.30 allow 1/3                                      SubmissionStatus.COMPLETE  84.780                     

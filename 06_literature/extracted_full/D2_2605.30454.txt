@@ -1,0 +1,2213 @@
+
+
+----- [page 1] -----
+The Surface You Test Is Not the Surface That Breaks
+Shifat E Arman1*†
+Syed Nazmus Sakib1*
+Nafiul Haque1
+Shahrear Bin Amin2
+1Department of Robotics and Mechatronics Engineering, University of Dhaka
+2Department of Computer Science and Engineering, University of Dhaka
+Abstract
+Tool-augmented LLM agents are vulnerable to
+prompt injection: a third party who controls
+part of the agent’s context can plant instruc-
+tions that the agent then executes as if they
+came from the user. Current evaluations report
+a single attack success rate per model on one
+channel, the tool output and treat that number
+as the model’s vulnerability. But tool descrip-
+tions, which the agent reads at every turn before
+any tool is called, are themselves an injection
+surface that the attacker can choose instead.
+We hold the injection payload byte-identical
+and deliver it through both surfaces across 13
+LLMs from six families and four task suites.
+The same bytes invert in success rate across
+models: GPT-4.1 is 96% vulnerable on tool
+outputs but only 4% on tool descriptions, while
+GEMINI-3-FLASH shows the mirror pattern
+at 20% and 98%. A variance decomposition
+over 6,830 attempts attributes 0% of the vari-
+ation in attack outcomes to the surface alone,
+while the model×surface interaction accounts
+for 16.7%. Vulnerability is a property of the
+pairing, not the channel. The Adaptive Attack
+Rate, defined as the per-cell maximum over
+surfaces, exceeds the strongest fixed-surface
+baseline by +9.1 percentage points on aver-
+age. Standard prompt-level defenses inherit the
+same blindspot, reducing tool-output ASR to
+10–18% while leaving the description channel
+above 54%. Both attack and defense evaluation
+must report per-surface vulnerability.
+1
+Introduction
+Tool-augmented LLM agents are now the default ar-
+chitecture for coding assistants, customer-support
+automation, and autonomous research and brows-
+ing (Schick et al., 2023; Patil et al., 2024; Qin
+* Equal contribution.
+† Corresponding author: shifatearman@du.ac.bd
+Under review at EMNLP. This is a preprint of the submit-
+ted manuscript.
+et al., 2024). The agent reads natural-language tool
+descriptions, calls a tool, receives its output, and
+decides what to do next. The central security con-
+cern in this loop is prompt injection: a third party
+who controls some piece of the agent’s context a re-
+trieved document, a tool output, an email body em-
+beds instructions that subvert the user’s intent, and
+the agent executes them without being asked (Perez
+and Ribeiro, 2022; Greshake et al., 2023). Exist-
+ing benchmarks (Debenedetti et al., 2024; Yi et al.,
+2025; Zhan et al., 2024) and defenses (Hines et al.,
+2024; Wallace et al., 2024) converge on a single
+evaluation primitive. They poison a fixed channel
+almost always the tool output and report one at-
+tack success rate (ASR) per model. Adversarial
+machine learning has long shown that fixed-attack
+evaluation overstates security, and that adaptive,
+worst-case attacks are required for any meaningful
+robustness claim (Athalye et al., 2018; Carlini et al.,
+2019; Tramer et al., 2020; Croce and Hein, 2020).
+This lesson now governs LLM jailbreaking (Zou
+et al., 2023; Chao et al., 2025), but it has not yet
+reached prompt injection. There is no reason an at-
+tacker should commit to one channel. An adversary
+who controls the tool ecosystem can poison tool
+outputs (the data surface), tool descriptions (the
+schema surface), or both. This raises the question
+we study: if the attacker may choose the surface
+per target, how much does single-surface evalua-
+tion understate the true risk, and what does the gap
+look like across model families?
+We answer this by holding the injection payload
+byte-identical and delivering it through two distinct
+surfaces. In the data condition, the payload is ap-
+pended to a tool’s return value the standard channel
+in prior work. In the schema condition, the iden-
+tical bytes are placed in the tool’s description
+field, which the agent reads at every turn before
+any tool is called. Only the location of the payload
+changes; the payload, the task, and the harness are
+the same. We run this comparison on 13 LLMs
+1
+arXiv:2605.30454v1 [cs.CR] 28 May 2026
+
+
+----- [page 2] -----
+from six families across four task suites, paired
+on identical user-task and injection-task pairs and
+adjudicated by the same deterministic predicate on
+both surfaces. The result is sharp. The same byte-
+identical payload inverts in success rate from one
+model to the next: GPT-4.1 produces a −92 pp
+surface gap on slack, while GEMINI-3-FLASH pro-
+duces a +78 pp gap on the same suite with the
+same bytes. A variance decomposition over 6,830
+attempts attributes 0% of attempt-level variance to
+surface alone and 16.7% to the model×surface in-
+teraction. Vulnerability is therefore not a property
+of the surface or the model in isolation, but of the
+pairing.
+Figure 1 summarizes the pipeline. Our contribu-
+tions are threefold.
+1. A cross-surface evaluation of prompt-
+injection vulnerability. We hold the injection
+payload byte-identical and deliver it through
+two distinct surfaces tool outputs (the data
+surface) and tool descriptions (the schema sur-
+face) across 13 LLMs from six families and
+four task suites. The same bytes invert in suc-
+cess rate from one model to the next, and a
+variance decomposition over 6,830 attempts
+attributes 0% of attempt-level variance to sur-
+face alone and 16.7% to the model×surface
+interaction. Vulnerability is a property of the
+model×surface pairing, not of either alone.
+2. The Adaptive Attack Rate (AAR). We
+formalize the surface-adaptive attacker as
+the per-cell maximum of the two single-
+surface ASRs, and show that this attacker ex-
+ceeds the strongest fixed-surface baseline by
++9.1 pp on average (paired bootstrap 95% CI
+[+4.4, +14.3], Wilcoxon p < 0.001, n = 52
+cells). The advantage is also cheap to real-
+ize in practice: within-family historical data
+captures 46% of the oracle adaptive gain with-
+out per-target queries, and five direct probes
+capture 73%.
+3. A defense-side surface asymmetry. Stan-
+dard prompt-level defenses repeating the
+user prompt, spotlighting with delimiters re-
+duce data-surface ASR to 10–18% but leave
+schema-surface ASR above 54%. The resid-
+ual ASR reported by prior defense work is
+therefore itself a lower bound on realized vul-
+nerability under a surface-adaptive attacker,
+and defense evaluation must adopt the same
+per-surface reporting we recommend for at-
+tacks.
+2
+Related Work
+Prompt injection and the tool-description sur-
+face.
+Indirect prompt injection plants adversarial
+instructions in content the agent consumes, sub-
+verting the user’s intent without any malicious user
+prompt (Perez and Ribeiro, 2022; Greshake et al.,
+2023), and AgentDojo (Debenedetti et al., 2024) es-
+tablished the standard agentic evaluation on which
+a benchmarking and defense literature has grown
+(§1). The closest prior attacks to ours target the tool
+schema directly: ToolHijacker (Shi et al., 2025)
+and ToolCommander (Zhang et al., 2025) optimize
+the content of a malicious tool document to win re-
+trieval and selection, system-prompt poisoning (Li
+et al., 2025) injects at the developer-instruction
+level, and the MCPTox benchmark (Wang et al.,
+2026) together with MCP threat analyses docu-
+ments tool-description poisoning as a live deploy-
+ment risk. Two distinctions separate our work.
+First, these attacks optimize the payload to maxi-
+mize a single surface; we hold the payload byte-
+identical across surfaces and treat the surface it-
+self as the attacker’s choice variable, so our Adap-
+tive Attack Rate is a content-agnostic lower bound
+that a content-optimizing attacker would only ex-
+ceed. Second, where prior work has reported tool-
+description injection to be near-ineffective relative
+to tool-output injection, we show that conclusion to
+be an artifact of narrow model panels: effectiveness
+is strongly model-dependent, and the schema sur-
+face dominates for a substantial subset of frontier
+models.
+Adaptive evaluation and cross-model hetero-
+geneity.
+Adversarial robustness research estab-
+lished that fixed-attack evaluation overstates se-
+curity and that adaptive, worst-case attacks are
+required for sound claims (Athalye et al., 2018;
+Tramer et al., 2020); the same principle now gov-
+erns LLM jailbreaking (Wei et al., 2023; Zou
+et al., 2023; Andriushchenko et al., 2025) and, re-
+cently, prompt injection, where adaptive attacks
+break published defenses (Zhan et al., 2025; Nasr
+et al., 2025). These adapt over attack content or
+optimizer; we adapt over the attack surface, an
+axis orthogonal to all of them.
+A second line
+documents that model behavior is heterogeneous
+across families: jailbreaks and defenses transfer
+2
+
+
+----- [page 3] -----
+Figure 1: Overview of surface-adaptive prompt injection. (A) A tool-augmented agent reads tool specifications at
+every turn and receives tool outputs after execution, exposing two distinct injection channels. (B) We construct a
+byte-identical payload and inject it through either surface; only the location changes. (C) For each (model, suite)
+cell we measure ASR on both surfaces. Effectiveness inverts across models: no single surface dominates. (D) The
+Adaptive Attack Rate (AAR) is the per-cell maximum over surfaces and matches the best surface choice an attacker
+free to select would make. (E) Surface-adaptive evaluation lifts measured ASR by +9.1 pp over the strongest
+fixed-surface baseline, the optimal surface is family-dependent, surface selection is cheap, and standard defenses do
+not close the gap.
+unevenly (Robey et al., 2023; Cao et al., 2024; An-
+war et al., 2024), model family is recoverable from
+black-box probes (Carlini et al., 2024), and tool-
+calling reliability is itself family-correlated (Qin
+et al., 2024; Patil et al., 2024). We extend this lin-
+eage along a new axis the direction of cross-surface
+vulnerability is a stable family-level signature and
+invert its use: where prior work treats the family
+signature as something to identify, we make it the
+substrate of a cheap, zero-query attack that selects
+the surface from the model name alone.
+3
+Experimental Setup and Metrics
+3.1
+Evaluation Environment
+We build on AGENTDOJO (Debenedetti et al.,
+2024), a stateful multi-turn benchmark for prompt-
+injection evaluation in tool-augmented agents.
+AGENTDOJO provides four task suites banking,
+slack, travel, and workspace each pairing a set
+of user tasks Us with injection tasks Is. For ev-
+ery (u, i) pair, an agent pursues user goal u while
+an attacker attempts to execute goal i through the
+environment. Two binary outcomes are recorded
+per trial: utility (user task completed) and security
+(attacker goal executed). All task content, tool im-
+plementations, and environment-state checks are
+taken from the AGENTDOJO release without modi-
+fication.
+3.2
+The Two Attack Surfaces
+We introduce a cross-surface evaluation design on
+top of this environment. For each (u, i) pair we run
+two attack conditions using the same byte-identical
+payload p. In the data-surface condition, p is ap-
+pended to the return value of an attacker-controlled
+tool the standard injection channel in prior work.
+In the schema-surface condition, p is placed in the
+description field of the same tool’s specification,
+which the agent reads at every turn before any tool
+3
+
+
+----- [page 4] -----
+is invoked. Only the location of p changes between
+conditions; the payload, the task pair, and the eval-
+uation harness are identical.
+We use the workflow_dependency template as
+the payload p across all experiments. The tem-
+plate frames the attacker’s goal as a mandatory
+pre-execution step by combining four components:
+a trigger condition, a plausible justification, an
+urgency marker, and the attacker’s concrete in-
+struction. A template-component ablation in Ap-
+pendix E characterizes the contribution of each
+component across model families; the exact byte
+string is given in Appendix H.
+3.3
+Evaluation Metrics
+We measure prompt-injection vulnerability at the
+cell level. A cell c = (m, s) is a model m ∈M
+paired with a task suite s ∈S. Within each cell,
+the evaluation iterates over all (u, i) pairs of user
+task u and injection task i, and for each surface
+v ∈{data, schema} records the binary security
+outcome yc,v,u,i ∈{0, 1}.
+Attack Success Rate (ASR).
+The cell-level
+single-surface ASR is the fraction of (u, i) pairs on
+which the surface-v attack succeeds:
+ASR(c, v) =
+1
+|Us × Is|
+X
+u,i
+yc,v,u,i.
+(1)
+ASR is the standard prompt-injection metric in
+prior work and is always reported for a single fixed
+surface.
+Adaptive Attack Rate (AAR).
+We define AAR
+as the per-cell maximum over surfaces, correspond-
+ing to the oracle attacker that selects the more ef-
+fective surface per target:
+AAR(c) = max
+ ASR(c, data), ASR(c, schema)
+
+.
+(2)
+AAR ≥ASR(c, v) for every surface v by construc-
+tion, so any single-surface ASR is a lower bound
+on AAR; the looseness of this lower bound is the
+surface-adaptive advantage we measure.
+Surface-Optimal Margin (SOM).
+To charac-
+terize the direction and magnitude of surface
+preference,
+we use the signed surface gap
+SOMsigned(c) = ASR(c, schema) −ASR(c, data)
+and its absolute value SOM(c) = |SOMsigned(c)|.
+A positive sign indicates a schema-surface prefer-
+ence, negative a data-surface preference. We treat
+cells with SOM(c) ≤10 pp as operationally tied
+and cells with SOM(c) > 10 pp as exploitable by
+an adaptive attacker.
+4
+Experimental Results
+We evaluate 13 LLMs from six families Ope-
+nAI, Google, Meta, Qwen, Mistral, and DeepSeek
+across four AGENTDOJO task suites (banking,
+slack, travel, workspace). For every cell we run
+the same byte-identical injection payload on both
+attack surfaces, compute single-surface ASR for
+each, and derive the Adaptive Attack Rate and the
+Surface-Optimal Margin. The evaluation spans
+6,830 individual attack attempts (3,415 per sur-
+face). We organize this section around four claims:
+surface vulnerability is a model×surface interac-
+tion rather than a property of either alone (§4.1);
+this interaction is structured within model families
+but does not transfer across them (§4.2); the result-
+ing surface-adaptive attacker exceeds the strongest
+fixed-surface baseline (§4.3); and standard prompt-
+level defenses inherit the single-surface convention
+of attack evaluation, leaving the schema channel
+essentially unguarded (§4.4).
+4.1
+Surface Vulnerability is a Model×Surface
+Interaction
+Variance decomposition.
+We begin with a ques-
+tion that is prior to any aggregate ASR compari-
+son: is surface a meaningful axis of variation in
+attack success at all? Table 1 reports a one-way
+decomposition of the per-attempt binary success
+outcome (N = 6,830) into between-group sums
+of squares for each factor and selected interac-
+tions. Surface alone explains 0.0% of attempt-
+level variance; model alone explains 6.5%; the
+model×surface interaction explains 16.7%, an or-
+der of magnitude larger than the surface main effect.
+There is no globally more dangerous surface, only
+a surface that is more dangerous for a given model.
+Any analysis that averages over models as single-
+surface ASR implicitly does measures the wrong
+quantity, because the signal lives in the interaction.
+The same byte-identical payload produces oppo-
+site effects across models.
+The interaction has a
+sharp empirical signature at the cell level. Across
+all 52 cells, the signed surface gap SOMsigned spans
+−92 to +78 percentage points nearly the full pos-
+sible range. Twenty-two cells (42%) favor the data
+surface by more than 10 pp; eleven (21%) favor
+the schema surface by more than 10 pp; nineteen
+(37%) are tied within ±10 pp. The two extremes
+4
+
+
+----- [page 5] -----
+gpt-4.1
+gpt-4o-11-20
+gpt-4o-mini
+gpt-5.4
+gpt-oss-20b
+gemini-3-flash
+llama-3.3-70b
+qwen3-32b
+qwen3.5-flash
+ministral-3b
+mistral-large
+mistral-small
+deepseek-chat-v3
+0
+20
+40
+60
+80
+100
+Attack Success Rate (%)
+OpenAI
+Google
+Meta
+Qwen
+Mistral
+DeepSeek
+Surface-adaptive attackers strictly dominate fixed-surface baselines across 13 LLMs
+Data-surface ASR
+Schema-surface ASR
+Adaptive ASR (oracle)
+Per-cell mean across n=52 cells: data 37.5% schema 31.5% adaptive 46.5% lift +9.1 pp
+Figure 2: Per-model decomposition of the adaptive lift across 13 LLMs. For each model, the data-surface and
+schema-surface ASR bars point in opposite directions, and the adaptive (oracle) bar sits at or above both by
+construction. Models are grouped by family. The per-cell mean across n=52 cells confirms the aggregate pattern:
+data 37.5%, schema 31.5%, adaptive 46.5%, lift +9.1 pp.
+Factor
+% variance
+Surface
+0.0
+Model
+6.5
+Suite
+8.9
+Model × surface
+16.7
+Suite × surface
+9.4
+Model × injection task
+34.4
+Table 1:
+One-way variance decomposition of per-
+attempt success (N = 6,830). Surface has no main
+effect; the operative signal is the model×surface inter-
+action.
+are reached on the same suite with the same byte-
+identical payload: GPT-4.1 on slack produces a
+−92 pp gap, while GEMINI-3-FLASH on the same
+suite produces a +78 pp gap.
+Only the model
+changes, and the direction fully inverts. The sur-
+face that works depends on who is reading it, not on
+what is written. Figure 3 visualizes the full 52-cell
+landscape; no row and no column is monochrome.
+The canonical per-cell numbers are reported in Ap-
+pendix A.
+Implication for evaluation.
+A benchmark that
+reports only data-surface ASR correctly measures
+the threat for data-preferring models. For schema-
+preferring models it systematically undercounts
+the risk. The Adaptive Attack Rate, AAR(c) =
+max(ASR(c, data), ASR(c, schema)), closes this
+gap by reporting the vulnerability an attacker free
+to choose their surface would actually encounter.
+Banking
+Slack
+Travel
+Workspace
+gpt-4.1
+gpt-4o-11-20
+gpt-4o-mini
+gpt-5.4
+gpt-oss-20b
+gemini-3-flash
+llama-3.3-70b
+qwen3-32b
+qwen3.5-flash
+ministral-3b
+mistral-large
+mistral-small
+deepseek-chat-v3
+-49
+-92
+-34
+-17
+-20
+-80
++6
+-10
+-33
+-64
+-29
+-9
++18
++29
++40
++30
+-7
+-12
+—
+—
++72
++78
++62
++51
+-33
+-47
+-24
+-6
++10
+-14
+-12
++13
++12
+-38
+-38
+-6
++0
++4
++9
++0
+-9
+-16
+-3
+-4
++9
+-28
++3
++23
++0
+-12
+-9
++3
+Cell-level surface preference: ASR(schema) − ASR(data), in pp
+OpenAI
+Google
+Meta
+Qwen
+Mistral
+DeepSeek
+−75
+−50
+−25
+0
+25
+50
+75
+Δ ASR (schema − data), pp
+Figure 3: Cell-level surface preference across the 52-cell
+landscape. Color encodes SOMsigned = ASRschema −
+ASRdata in percentage points; blue indicates a schema-
+surface preference, red a data-surface preference. Mod-
+els are grouped by family (left-edge color stripe). No
+row and no column is monochrome.
+4.2
+The Interaction is Structured Within
+Families, Not Across Them
+Surface preference is stable within a model
+across task domains.
+The directional finding
+of §4.1 is not a suite-level artifact.
+GEMINI-
+3-FLASH schema-prefers on every suite it was
+evaluated on: +72.2 pp on banking, +78.1 pp on
+slack, +61.9 pp on travel, +50.9 pp on workspace.
+GPT-5.4 schema-prefers on all four suites. Con-
+versely, GPT-4.1, GPT-4O-MINI, and LLAMA-
+3.3-70B data-prefer on every suite, with mean
+5
+
+
+----- [page 6] -----
+surface gaps of −48.1, −33.6, and −27.6 pp re-
+spectively. MISTRAL-LARGE and DEEPSEEK-V3
+lean data-favoring but sit closer to parity. QWEN-
+3-32B is the most mixed case: data-favoring on
+slack and travel, schema-favoring on banking, ap-
+proximately tied on workspace. Across the panel,
+a model’s surface direction on one suite reliably
+predicts its direction on others. An independent
+behavioral embedding view confirms this: in a 2-D
+UMAP projection of the 26 (model, surface) be-
+havior vectors (Appendix C), the nearest neighbor
+of a point is a same-surface point in 35/52 (67%)
+of cases, against a same-model point in only 5/52
+(10%).
+Family identity transfers within-family but not
+across families.
+A natural attacker hypothesis is
+that this stable signature can be exploited from the
+public model identifier alone available from the
+API endpoint without any per-target query. We
+test three variants of a family-prior attacker (Ta-
+ble 2). The in-sample family-prior, which estimates
+each family’s preferred surface from all observed
+cells of that family, captures 56% of the oracle
+adaptive gain (42.5% ASR). The leave-one-cell-out
+within-family variant (LOCO-f), which estimates
+the family preference from the family’s other cells
+only, captures 46% (41.7%). The strict leave-one-
+family-out variant (LOFO) the only setting that
+corresponds to an attacker who has never observed
+the target’s family collapses to 30.5%, 6.9 pp below
+the always-data baseline. The signal is real, but it
+is a within-family signature, not a cross-family pre-
+dictor: an attacker with historical attack data on the
+target’s family can exploit it cheaply, while family
+membership in the abstract carries no transferable
+information about surface preference.
+Per-target probing closes the remaining gap
+cheaply.
+For an attacker who has not previously
+observed the target’s family, the operationally rel-
+evant strategy is to probe the target directly. A K-
+probe fingerprint attacker observes both surfaces
+on K randomly sampled (user-task, injection-task)
+pairs per cell, selects the empirically better surface,
+and applies it to the remainder. Realized ASR is
+41.3% at K=1, 42.5% at K=2, 44.1% at K=5,
+and 44.7% at K=10 (Figure 4). The K=1 probe
+sits below the LOCO-f family-prior due to single-
+probe binary variance; monotonicity recovers by
+K=2 and consistently exceeds the family-prior by
+K=5. Five probes captures 73% of the oracle gain;
+ten captures 80%. Surface preference is opera-
+Strategy
+Probes
+ASR
+% oracle
+Always-data baseline
+0
+37.5
+0%
+Always-schema baseline
+0
+31.5
+(worse)
+Random per-cell
+0
+34.5
+(worse)
+Family-prior (in-sample)
+0
+42.5
+56%
+Family-prior (LOCO-f, cross-val.)
+0
+41.7
+46%
+Family-prior (LOFO, strict)
+0
+30.5
+(worse)
+1-query fingerprint
+1
+41.3
+42%
+2-query fingerprint
+2
+42.5
+56%
+5-query fingerprint
+5
+44.1
+73%
+10-query fingerprint
+10
+44.7
+80%
+Oracle (per-cell)
+∞
+46.5
+100%
+Table 2: Fingerprinting strategies versus the oracle. Per-
+cell mean ASR (n = 52). “Probes” is the number
+of (user-task, injection-task) queries the attacker uses
+to infer the better surface per target. Family-prior is
+reported in-sample (upper bound), under leave-one-cell-
+out within-family cross-validation (LOCO-f), and under
+the strict leave-one-family-out variant (LOFO).
+2
+4
+6
+8
+10
+Probe budget K (per target)
+30.0
+32.5
+35.0
+37.5
+40.0
+42.5
+45.0
+47.5
+50.0
+Realized adaptive ASR (%)
+41.3%
+42.5%
+43.3%
+44.2%
+44.5%
+44.9%
+K=1 is below family-prior
+(single-probe variance)
+Surface fingerprinting is sample-efficient: 5 probes ≈ oracle
+always-data baseline (37.2%)
+always-schema baseline (31.6%)
+oracle ceiling (46.7%)
+family-prior, 0 probes (42.5%)
+K-probe fingerprint
+Figure 4: Cost-effectiveness of surface fingerprinting.
+The K-probe curve shows realized adaptive ASR as the
+probe budget grows, against the always-data baseline,
+the always-schema baseline, the in-sample family-prior,
+and the oracle ceiling. The K=1 probe dips below the
+family-prior due to single-probe binary variance; mono-
+tonicity recovers by K=2, and the curve exceeds the
+in-sample family-prior from K=3 onward.
+tionally exploitable through one of two cheap chan-
+nels prior knowledge of the family, or a handful of
+direct probes but not through the model identifier
+in the abstract.
+4.3
+The Surface-Adaptive Attacker and the
+Anatomy of the Lift
+Aggregate AAR exceeds the strongest fixed-
+surface baseline, and the lift is heavily con-
+centrated.
+The model×surface interaction doc-
+umented in §4.1 has a direct operational conse-
+quence: an attacker who can select the surface per
+target captures whichever side of the interaction is
+favorable. Across all 52 cells, this surface-adaptive
+attacker achieves an AAR of 46.5%, against 37.5%
+6
+
+
+----- [page 7] -----
+All cells
+Drop Gemini-3
+Drop GPT-5.4
+Drop both above
+Workspace-only
+Banking-only
+Slack-only
+Travel-only
+−2
+0
+2
+4
+6
+8
+10
+12
+14
+Adaptive lift over always-data (pp)
++9.4pp
+n=50
++4.5pp
+n=46
++7.7pp
+n=46
++2.2pp
+n=42
++10.0pp
+n=12
++9.3pp
+n=13
++8.5pp
+n=13
++10.0pp
+n=12
+Robustness: adaptive lift survives leave-one-out and suite restrictions
+Figure 5: Leave-one-out and suite-restriction robustness
+of the adaptive lift. Bars show the adaptive lift over
+always-data after excluding the indicated models or re-
+stricting to a single suite; the cell count n is annotated
+above each bar. The headline +9.1 pp decomposes into
+a +2.1 pp universal component (both schema-preferring
+frontier models removed) and a +7.0 pp outlier compo-
+nent contributed by those two models.
+for the always-data baseline and 31.5% for always-
+schema.
+The aggregate adaptive lift over the
+best fixed-surface baseline is +9.1 pp (paired boot-
+strap 95% CI [+4.4, +14.3], Wilcoxon p < 0.001,
+n = 52, B = 2000); AAR also exceeds always-
+schema by +15.1 pp and random per-cell selec-
+tion by +12.1 pp (both p < 0.001). The lift is
+consistent across the four task suites at +9.3 pp
+(banking), +8.5 pp (slack), +9.2 pp (travel), and
++5.1 pp (workspace).
+Figure 2 shows the per-
+model decomposition: for each model the data and
+schema bars point in opposite directions, and the
+adaptive bar sits at or above both by construction.
+This aggregate is not uniformly distributed
+across the panel, and we report the decomposi-
+tion immediately rather than relegate it to robust-
+ness analysis. Removing GEMINI-3-FLASH, the
+lift attenuates to +4.4 pp (n = 48); removing GPT-
+5.4, it becomes +7.4 pp; removing both schema-
+preferring frontier models, the lift falls to +2.1 pp
+(n = 44) (Figure 5). The headline number is there-
+fore the sum of two structurally distinct compo-
+nents: a small universal component of +2.1 pp dis-
+tributed across the remaining eleven models, and a
+large outlier component of +7.0 pp contributed by
+the two schema-preferring frontier models, whose
+mean surface gaps are +65.8 and +29.4 pp.
+The two components answer different questions,
+and we keep them separate throughout. The uni-
+versal component establishes that surface-adaptive
+evaluation is a meaningfully tighter primitive than
+single-surface ASR for typical models in the panel
+a small but consistent gain that justifies reporting
+per-surface vulnerability as the default. The outlier
+component documents two concrete frontier-model
+Defense
+Data ASR
+Schema ASR
+repeat_user_prompt
+10.6
+54.8
+spotlighting_with_delimiting
+17.9
+54.1
+tool_filter
+0.0
+0.8
+Table 3: Residual ASR with defenses applied, by surface
+(three-model preliminary panel). Prompt-level defenses
+act on the data stream and leave the schema stream
+essentially untouched; only description-aware defenses
+suppress both. Lower is better.
+vulnerabilities: schema-surface attacks succeeding
+at 74.6% on GEMINI-3-FLASH and 29.4% on GPT-
+5.4 where data-surface attacks fail at 8.8% and
+0.0%. We report these as independent disclosures
+rather than fold them into the panel average. A
+single-number summary that does not distinguish
+these two sources is less informative than the de-
+composition, and we make no claim about which
+component would dominate on a different model
+panel.
+The surface dependence persists under native
+function-calling tools.
+A tool’s description
+and its returned output are primitives of every
+function-calling interface, so the surface effect
+should not be tied to the AGENTDOJO harness.
+We verify this by instantiating the identical cross-
+surface evaluation directly on native function-
+calling (MCP) tool specifications, across four repre-
+sentative tool-use scenarios (document exfiltration,
+contact exfiltration, payment redirection, file dele-
+tion) and four models. The model-specific direction
+reproduces: GEMINI-3-FLASH succeeds on 0% of
+data-surface attempts but 100% of schema-surface
+attempts, while GPT-4.1 shows the mirror pattern
+(100% data, 50% schema). The per-target adap-
+tive maximum reaches 87.5% exceeding the better
+fixed surface by 15 pp, the same ordering observed
+in the main benchmark. Appendix B reports the
+full scenario specifications and per-model results.
+4.4
+Standard Defenses are Surface-Blind
+The empirical pattern of §4.1–§4.3 has a defen-
+sive corollary that, to our knowledge, the prompt-
+injection defense literature has not addressed: stan-
+dard defenses inherit the single-surface conven-
+tion of attack evaluation. Defenses designed to act
+on the data surface the channel through which un-
+trusted retrieved content reaches the model leave
+the schema surface essentially unmediated, because
+schema content arrives in the tool list as authorita-
+tive tool metadata rather than as untrusted input.
+7
+
+
+----- [page 8] -----
+Table 3 re-evaluates three representative de-
+fenses under both surfaces on a fully paired three-
+model subset. Repeating the user prompt drops
+data-surface ASR to 10.6% but leaves schema-
+surface ASR at 54.8%. Spotlighting with delim-
+iters (Hines et al., 2024) drops data-surface ASR
+to 17.9% but leaves schema-surface ASR at 54.1%.
+Both defenses succeed on the channel they were
+designed for and have essentially no effect on the
+channel the schema-preferring models in the panel
+are vulnerable through. Only the description-aware
+tool_filter defense, which inspects tool speci-
+fications before they reach the model, suppresses
+both surfaces (0.0% / 0.8%); this defense is not
+the field’s current standard, and its residuals on the
+schema surface have not previously been reported
+in the same evaluation as its residuals on the data
+surface.
+Implication.
+This asymmetry is the defensive
+mirror of the main finding. A defense tuned and
+reported on the data surface can claim strong resid-
+ual ASR while leaving the schema surface unad-
+dressed; against a surface-adaptive attacker, the
+residual ASR reported in prior defense papers is
+itself a lower bound on realized vulnerability, by
+the same construction that makes single-surface
+attack ASR a lower bound on AAR. The recom-
+mendation that follows is parallel to the attack-side
+recommendation: defense evaluation must report
+residual ASR per surface, and ideally against an
+adaptive attacker who selects the surface the de-
+fense covers least well. The operational picture
+is sharper still: among successful schema-surface
+attacks on GEMINI-3-FLASH, the agent completes
+the attacker goal and the user task in roughly 50%
+of cases (Appendix F), meaning the breach is covert
+by default. A defense reporting strong residual
+ASR on the data surface does not merely leave
+the schema surface unaddressed—it leaves it unad-
+dressed in a regime where attacks succeed without
+surfacing to the user.
+5
+Conclusion
+We have shown that prompt-injection vulnerabil-
+ity in tool-augmented LLM agents is not a scalar
+property of a model but a structural property of the
+model×surface pairing a finding that the prevailing
+single-surface evaluation convention is by construc-
+tion unable to detect. Across 13 LLMs from six
+families on four AGENTDOJO task suites, a vari-
+ance decomposition over 6,830 attempts assigns es-
+sentially no attempt-level variance to surface alone
+and 16.7% to the model×surface interaction; byte-
+identical payloads invert in direction across the
+panel; two frontier models exhibit severe schema-
+surface vulnerability (74.6% and 29.4% ASR) that
+data-surface evaluation reports at 8.8% and 0.0%;
+and the Adaptive Attack Rate (AAR) we introduce
+reads this interaction as a worst-case attacker ad-
+vantage of +9.1 pp over the strongest fixed-surface
+baseline, exploitable from within-family historical
+data alone or from a handful of per-target probes.
+A parallel surface asymmetry in standard defenses
+prompt-level mitigations reduce data-surface ASR
+to 10–18% while leaving the schema surface above
+54% shows that the single-surface convention has
+propagated from attack benchmarks into the de-
+fense literature, so that residual ASR as currently
+reported is itself a lower bound on realized vulner-
+ability under a surface-adaptive attacker. The cor-
+rective is to elevate ASR from a per-model scalar
+to a per-(model, surface) measurement and to eval-
+uate defenses against an attacker free to select the
+channel they have least mitigated; we release our
+evaluation harness and per-cell results to support
+this shift.
+Limitations
+Three limitations bound our results. First, we in-
+stantiate two complementary attack surfaces data-
+vector tool outputs and schema-vector tool de-
+scriptions out of a broader plausible taxonomy
+that includes multimodal channels (Bagdasaryan
+et al., 2023), system-prompt forgery, and structural-
+output attacks; the AAR formulation generalizes
+naturally to any surface set, and the +9.1 pp lift
+we report should therefore be read as a conserva-
+tive lower bound on the gap available to an attacker
+with broader surface access. Second, our main eval-
+uation is anchored in AGENTDOJO, with a smaller
+external-validity pilot on native function-calling
+(MCP) tools (Appendix B); a full surface-adaptive
+replication across additional deployment ecosys-
+tems is a natural next step that the AAR primitive
+directly supports. Third, the magnitude of cross-
+surface risk is model-dependent rather than panel-
+uniform, which is why we report the full per-cell
+AAR landscape alongside the aggregate and recom-
+mend that practitioners measure AAR directly on
+their target rather than impute it from cross-panel
+averages.
+8
+
+
+----- [page 9] -----
+Ethics Statement
+This work studies a class of prompt-injection at-
+tacks against deployed LLM agents and reports per-
+model exploit rates for two frontier systems. We
+follow standard responsible-disclosure norms: the
+model vendors of GEMINI-3-FLASH and GPT-5.4
+were notified of the schema-surface vulnerabilities
+prior to submission. We release our evaluation har-
+ness because the attack surface (tool descriptions in
+a function-calling interface) is a structural property
+of the API and cannot be hidden from defenders;
+releasing reproducible evaluation tools strengthens
+the defensive side of the asymmetry we document.
+Code Availability
+Our
+evaluation
+harness,
+attack
+implementa-
+tions, and reproduction instructions are available
+at https://github.com/syed-nazmus-sakib/
+surface-adaptive-injection.
+Acknowledgements
+We thank Ahnaf Tahmid Manan for his help in
+producing the artifacts used in this paper, including
+the design of Figure 1.
+Generative AI Usage
+We used a generative AI assistant solely to aid
+manuscript writing, specifically for grammatical
+correction and minor stylistic polishing of author-
+written text. It was not used to generate research
+ideas, conduct experiments, or analyze results.
+References
+Maksym Andriushchenko, Nicolas Flammarion, and
+1 others. 2025. Jailbreaking leading safety-aligned
+llms with simple adaptive attacks. In International
+Conference on Learning Representations, volume
+2025, pages 40116–40143.
+Usman Anwar, Abulhair Saparov, Javier Rando, Daniel
+Paleka, Miles Turpin, Peter Hase, Ekdeep Singh
+Lubana, Erik Jenner, Stephen Casper, Oliver Sourbut,
+and 1 others. 2024. Foundational challenges in assur-
+ing alignment and safety of large language models.
+arXiv preprint arXiv:2404.09932.
+Anish Athalye, Nicholas Carlini, and David Wagner.
+2018. Obfuscated gradients give a false sense of se-
+curity: Circumventing defenses to adversarial exam-
+ples. In International conference on machine learn-
+ing, pages 274–283. PMLR.
+Eugene Bagdasaryan, Tsung-Yin Hsieh, Ben Nassi, and
+Vitaly Shmatikov. 2023. Abusing images and sounds
+for indirect instruction injection in multi-modal llms.
+arXiv preprint arXiv:2307.10490.
+Bochuan Cao, Yuanpu Cao, Lu Lin, and Jinghui Chen.
+2024. Defending against alignment-breaking attacks
+via robustly aligned llm. In Proceedings of the 62nd
+Annual Meeting of the Association for Computational
+Linguistics (Volume 1: Long Papers), pages 10542–
+10560.
+Nicholas Carlini, Anish Athalye, Nicolas Papernot,
+Wieland Brendel, Jonas Rauber, Dimitris Tsipras,
+Ian Goodfellow, Aleksander Madry, and Alexey Ku-
+rakin. 2019. On evaluating adversarial robustness.
+arXiv preprint arXiv:1902.06705.
+Nicholas Carlini, Daniel Paleka, Krishnamurthy Dj Dvi-
+jotham, Thomas Steinke, Jonathan Hayase, A Feder
+Cooper, Katherine Lee, Matthew Jagielski, Milad
+Nasr, Arthur Conmy, and 1 others. 2024. Stealing
+part of a production language model. arXiv preprint
+arXiv:2403.06634.
+Patrick Chao, Alexander Robey, Edgar Dobriban,
+Hamed Hassani, George J Pappas, and Eric Wong.
+2025. Jailbreaking black box large language models
+in twenty queries. In 2025 IEEE Conference on Se-
+cure and Trustworthy Machine Learning (SaTML),
+pages 23–42. IEEE.
+Francesco Croce and Matthias Hein. 2020. Reliable
+evaluation of adversarial robustness with an ensemble
+of diverse parameter-free attacks. In International
+conference on machine learning, pages 2206–2216.
+PMLR.
+Edoardo Debenedetti, Jie Zhang, Mislav Balunovic,
+Luca Beurer-Kellner, Marc Fischer, and Florian
+Tramèr. 2024. Agentdojo: A dynamic environment
+to evaluate prompt injection attacks and defenses for
+llm agents. Advances in Neural Information Process-
+ing Systems, 37:82895–82920.
+Kai Greshake, Sahar Abdelnabi, Shailesh Mishra,
+Christoph Endres, Thorsten Holz, and Mario Fritz.
+2023. Not what you’ve signed up for: Compromis-
+ing real-world llm-integrated applications with indi-
+rect prompt injection. In Proceedings of the 16th
+ACM workshop on artificial intelligence and security,
+pages 79–90.
+Keegan Hines, Gary Lopez, Matthew Hall, Federico
+Zarfati, Yonatan Zunger, and Emre Kiciman. 2024.
+Defending against indirect prompt injection attacks
+with spotlighting. arXiv preprint arXiv:2403.14720.
+Zongze Li, Jiawei Guo, and Haipeng Cai. 2025. System
+prompt poisoning: Persistent attacks on large lan-
+guage models beyond user injection. arXiv preprint
+arXiv:2505.06493.
+Milad Nasr, Nicholas Carlini, Chawin Sitawarin,
+Sander V Schulhoff, Jamie Hayes, Michael Ilie, Juli-
+ette Pluto, Shuang Song, Harsh Chaudhari, Ilia Shu-
+mailov, and 1 others. 2025.
+The attacker moves
+second: Stronger adaptive attacks bypass defenses
+9
+
+
+----- [page 10] -----
+against llm jailbreaks and prompt injections. arXiv
+preprint arXiv:2510.09023.
+Shishir G Patil, Tianjun Zhang, Xin Wang, and Joseph E
+Gonzalez. 2024.
+Gorilla: Large language model
+connected with massive apis. Advances in Neural
+Information Processing Systems, 37:126544–126565.
+Fábio Perez and Ian Ribeiro. 2022. Ignore previous
+prompt: Attack techniques for language models.
+arXiv preprint arXiv:2211.09527.
+Yujia Qin, Shihao Liang, Yining Ye, Kunlun Zhu, Lan
+Yan, Yaxi Lu, Yankai Lin, Xin Cong, Xiangru Tang,
+Bill Qian, and 1 others. 2024. Toolllm: Facilitating
+large language models to master 16000+ real-world
+apis. In International Conference on Learning Rep-
+resentations, volume 2024, pages 9695–9717.
+Alexander Robey, Eric Wong, Hamed Hassani, and
+George J Pappas. 2023. Smoothllm: Defending large
+language models against jailbreaking attacks. arXiv
+preprint arXiv:2310.03684.
+Timo Schick, Jane Dwivedi-Yu, Roberto Dessì, Roberta
+Raileanu, Maria Lomeli, Eric Hambro, Luke Zettle-
+moyer, Nicola Cancedda, and Thomas Scialom. 2023.
+Toolformer: Language models can teach themselves
+to use tools. Advances in neural information process-
+ing systems, 36:68539–68551.
+Jiawen Shi, Zenghui Yuan, Guiyao Tie, Pan Zhou,
+Neil Zhenqiang Gong, and Lichao Sun. 2025.
+Prompt injection attack to tool selection in llm agents.
+arXiv preprint arXiv:2504.19793.
+Florian Tramer, Nicholas Carlini, Wieland Brendel, and
+Aleksander Madry. 2020. On adaptive attacks to
+adversarial example defenses. Advances in neural
+information processing systems, 33:1633–1645.
+Eric Wallace, Kai Xiao, Reimar Leike, Lilian Weng,
+Johannes Heidecke, and Alex Beutel. 2024. The in-
+struction hierarchy: Training llms to prioritize privi-
+leged instructions. arXiv preprint arXiv:2404.13208.
+Zhiqiang Wang, Yichao Gao, Yanting Wang, Suyuan
+Liu, Haifeng Sun, Haoran Cheng, Guanquan Shi,
+Haohua Du, and Xiangyang Li. 2026. Mcptox: A
+benchmark for tool poisoning on real-world mcp
+servers.
+In Proceedings of the AAAI Conference
+on Artificial Intelligence, volume 40, pages 35811–
+35819.
+Alexander Wei, Nika Haghtalab, and Jacob Steinhardt.
+2023. Jailbroken: How does llm safety training fail?
+Advances in neural information processing systems,
+36:80079–80110.
+Jingwei Yi, Yueqi Xie, Bin Zhu, Emre Kiciman,
+Guangzhong Sun, Xing Xie, and Fangzhao Wu. 2025.
+Benchmarking and defending against indirect prompt
+injection attacks on large language models. In Pro-
+ceedings of the 31st ACM SIGKDD Conference on
+Knowledge Discovery and Data Mining V. 1, pages
+1809–1820.
+Qiusi Zhan, Richard Fang, Henil Shalin Panchal, and
+Daniel Kang. 2025.
+Adaptive attacks break de-
+fenses against indirect prompt injection attacks on
+llm agents. In Findings of the Association for Com-
+putational Linguistics: NAACL 2025, pages 7101–
+7117.
+Qiusi Zhan, Zhixiang Liang, Zifan Ying, and Daniel
+Kang. 2024.
+Injecagent: Benchmarking indirect
+prompt injections in tool-integrated large language
+model agents. In Findings of the Association for
+Computational Linguistics: ACL 2024, pages 10471–
+10506.
+Rupeng Zhang, Haowei Wang, Junjie Wang, Mingyang
+Li, Yuekai Huang, Dandan Wang, and Qing Wang.
+2025. From allies to adversaries: Manipulating llm
+tool-calling through adversarial injection. In Pro-
+ceedings of the 2025 Conference of the Nations of
+the Americas Chapter of the Association for Compu-
+tational Linguistics: Human Language Technologies
+(Volume 1: Long Papers), pages 2009–2028.
+Andy Zou, Zifan Wang, Nicholas Carlini, Milad Nasr,
+J Zico Kolter, and Matt Fredrikson. 2023. Univer-
+sal and transferable adversarial attacks on aligned
+language models. arXiv preprint arXiv:2307.15043.
+10
+
+
+----- [page 11] -----
+Appendix
+A
+Canonical Per-Cell Results
+Table 4 reports the canonical per-(model, suite)
+results that underlie every aggregate number
+in the main text:
+data-surface ASR, schema-
+surface ASR, the Adaptive Attack Rate AAR =
+max(ASRdata, ASRschema), and the signed Surface-
+Optimal Margin SOMsigned
+=
+ASRschema −
+ASRdata. Positive SOM indicates a schema-surface
+preference.
+All values are computed from the
+frozen evaluation logs, and the bottom row matches
+the headline per-cell mean reported in §4.
+Summary statistics.
+Of the 52 cells, 22 (42%)
+favor the data surface by more than 10 pp, 11 (21%)
+favor the schema surface by more than 10 pp, and
+19 (37%) are tied within ±10 pp. Thirty-three cells
+(63%) have |SOM| > 10 pp and are exploitable
+by an adaptive attacker. SOM ranges from −92 to
++78 pp. The adaptive lift of AAR over the better
+fixed-surface baseline is +9.1 pp (95% bootstrap
+CI [+4.4, +14.3], n = 52, B = 2000). Figure 6
+resolves these per-cell preferences to the (suite,
+injection-task) level, where the same surface pref-
+erences persist at finer granularity.
+B
+Generalization to Native
+Function-Calling Tools
+The cross-surface finding in §4.1 could in princi-
+ple be tied to a particular evaluation framework.
+To rule this out, we replicate the comparison in
+a self-contained agent built directly on the native
+function-calling (MCP) protocol. Tool specifica-
+tions are hand-authored (a name, a natural-language
+description, and a JSON-schema parameters
+block); a minimal tool-calling loop runs against the
+same inference gateway; and success is adjudicated
+programmatically from the recorded action trace
+did the agent invoke the attacker-intended tool with
+the attacker-intended argument? We test four repre-
+sentative tool-use scenarios document exfiltration,
+contact exfiltration, payment redirection, and unau-
+thorized file deletion each with a single attacker-
+controlled tool poisoned by one byte-identical pay-
+load placed either in the tool’s output (data surface)
+or its description field (schema surface). Four
+models × four scenarios × two surfaces × five
+repetitions yield 160 episodes at temperature 0; all
+complete without API error.
+The
+model-specific
+direction
+reproduces.
+GEMINI-3-FLASH is sharply schema-preferring,
+bank.0
+bank.1
+bank.2
+bank.3
+bank.4
+bank.5
+bank.6
+bank.7
+bank.8
+slac.1
+slac.2
+slac.3
+slac.4
+slac.5
+trav.0
+trav.1
+trav.2
+trav.3
+trav.4
+trav.5
+trav.6
+work.0
+work.1
+work.10
+work.11
+work.12
+work.13
+work.2
+work.3
+work.4
+work.5
+work.6
+work.7
+work.8
+work.9
+deepseek-v3
+gemini-3
+llama-3.3
+ministral-3b
+mistral-L
+mistral-S
+4.1
+4o-11-20
+4o-mini
+gpt-5.4
+oss-20b
+qwen3-32b
+qwen3.5
+Fine-grained surface gap by (model × suite × injection task)
+blue = schema-favoring, red = data-favoring
+−100
+−75
+−50
+−25
+0
+25
+50
+75
+100
+ΔASR (schema−data), pp
+Figure 6: Fine-grained surface-gap heatmap. SOMsigned
+resolved to the (suite, injection-task) level for each
+model; blue indicates a schema-surface preference, red
+a data-surface preference. The per-cell preferences of
+Table 4 persist at finer granularity.
+GPT-4.1 is sharply data-preferring, and QWEN-
+3-32B is tied the same ordering observed in
+the main benchmark.
+The per-target adaptive
+maximum (the AAR analogue taken over the
+model×scenario cells) is 87.5%, exceeding the
+better fixed surface (72.5%) by 15 pp. Scenarios
+are deliberately simple and the repetition count
+is small, so absolute magnitudes are sharper than
+in the main benchmark; the claim this replication
+supports is qualitative: surface dependence is a
+property of the function-calling interface itself,
+and the optimal surface is model-dependent under
+native function-calling delivery as it is under
+AgentDojo.
+C
+Cross-Model Structure of Surface
+Preference
+This section provides the analyses behind the cross-
+model structure claim in §4.2: the family-prior
+cross-validation variants, the K-probe fingerprint
+construction, and the behavioral-embedding view.
+Family-prior and cross-validation.
+The family
+map is taken from public model identifiers (Ta-
+ble 8). The family-prior attacker selects, for a
+target, the surface empirically optimal for the tar-
+get’s family. We report three variants, all using the
+canonical per-cell ASRs of Appendix A.
+In-sample: no held-out cells. For each cell, the
+family preference is computed from all observed
+cells of the same family (including the target). This
+captures 56% of the oracle adaptive gain (42.5%
+ASR) and is an upper bound on what a family-prior
+attacker can realize.
+LOCO-f (leave-one-cell-out within family, prin-
+cipled): for each cell, the family preference is com-
+puted from the family’s other cells only. The target
+cell does not contribute to its own prediction. This
+captures 46% of the oracle gain (41.7% ASR) and
+11
+
+
+----- [page 12] -----
+Family
+Model
+Suite
+Data
+Schema
+AAR
+SOM
+OpenAI
+GPT-4.1
+banking
+57.8
+8.9
+57.8
+−48.9
+OpenAI
+GPT-4.1
+slack
+96.0
+4.0
+96.0
+−92.0
+OpenAI
+GPT-4.1
+travel
+48.6
+14.3
+48.6
+−34.3
+OpenAI
+GPT-4.1
+workspace
+17.1
+0.0
+17.1
+−17.1
+OpenAI
+GPT-4O
+banking
+55.6
+35.6
+55.6
+−20.0
+OpenAI
+GPT-4O
+slack
+92.0
+12.0
+92.0
+−80.0
+OpenAI
+GPT-4O
+travel
+45.7
+51.4
+51.4
++5.7
+OpenAI
+GPT-4O
+workspace
+20.0
+10.0
+20.0
+−10.0
+OpenAI
+GPT-4O-MINI
+banking
+44.4
+11.1
+44.4
+−33.3
+OpenAI
+GPT-4O-MINI
+slack
+64.0
+0.0
+64.0
+−64.0
+OpenAI
+GPT-4O-MINI
+travel
+42.9
+14.3
+42.9
+−28.6
+OpenAI
+GPT-4O-MINI
+workspace
+10.0
+1.4
+10.0
+−8.6
+OpenAI
+GPT-5.4
+banking
+0.0
+18.1
+18.1
++18.1
+OpenAI
+GPT-5.4
+slack
+0.0
+28.6
+28.6
++28.6
+OpenAI
+GPT-5.4
+travel
+0.0
+40.5
+40.5
++40.5
+OpenAI
+GPT-5.4
+workspace
+0.0
+30.4
+30.4
++30.4
+OpenAI
+GPT-OSS-20B
+banking
+42.2
+35.6
+42.2
+−6.7
+OpenAI
+GPT-OSS-20B
+slack
+40.0
+28.0
+40.0
+−12.0
+OpenAI
+GPT-OSS-20B
+travel
+68.6
+54.3
+68.6
+−14.3
+OpenAI
+GPT-OSS-20B
+workspace
+18.6
+4.3
+18.6
+−14.3
+Google
+GEMINI-3-FLASH
+banking
+5.6
+77.8
+77.8
++72.2
+Google
+GEMINI-3-FLASH
+slack
+20.0
+98.1
+98.1
++78.1
+Google
+GEMINI-3-FLASH
+travel
+7.1
+69.0
+69.0
++61.9
+Google
+GEMINI-3-FLASH
+workspace
+2.7
+53.6
+53.6
++50.9
+Meta
+LLAMA-3.3-70B
+banking
+43.8
+10.4
+43.8
+−33.3
+Meta
+LLAMA-3.3-70B
+slack
+50.5
+3.8
+50.5
+−46.7
+Meta
+LLAMA-3.3-70B
+travel
+28.6
+4.8
+28.6
+−23.8
+Meta
+LLAMA-3.3-70B
+workspace
+6.2
+0.0
+6.2
+−6.2
+Qwen
+QWEN-3-32B
+banking
+49.3
+59.0
+59.0
++9.7
+Qwen
+QWEN-3-32B
+slack
+81.9
+67.6
+81.9
+−14.3
+Qwen
+QWEN-3-32B
+travel
+47.6
+35.7
+47.6
+−11.9
+Qwen
+QWEN-3-32B
+workspace
+2.7
+16.1
+16.1
++13.4
+Qwen
+QWEN-3.5-FLASH
+banking
+28.5
+41.0
+41.0
++12.5
+Qwen
+QWEN-3.5-FLASH
+slack
+80.0
+41.9
+80.0
+−38.1
+Qwen
+QWEN-3.5-FLASH
+travel
+78.6
+40.5
+78.6
+−38.1
+Qwen
+QWEN-3.5-FLASH
+workspace
+7.1
+0.9
+7.1
+−6.2
+Mistral
+MISTRAL-LARGE
+banking
+55.6
+46.7
+55.6
+−8.9
+Mistral
+MISTRAL-LARGE
+slack
+88.0
+72.0
+88.0
+−16.0
+Mistral
+MISTRAL-LARGE
+travel
+68.6
+65.7
+68.6
+−2.9
+Mistral
+MISTRAL-LARGE
+workspace
+34.3
+30.0
+34.3
+−4.3
+Mistral
+MISTRAL-SMALL
+banking
+33.3
+42.2
+42.2
++8.9
+Mistral
+MISTRAL-SMALL
+slack
+52.0
+24.0
+52.0
+−28.0
+Mistral
+MISTRAL-SMALL
+travel
+42.9
+45.7
+45.7
++2.9
+Mistral
+MISTRAL-SMALL
+workspace
+0.0
+22.9
+22.9
++22.9
+Mistral
+MINISTRAL-3B
+banking
+35.6
+35.6
+35.6
++0.0
+Mistral
+MINISTRAL-3B
+slack
+8.0
+12.0
+12.0
++4.0
+Mistral
+MINISTRAL-3B
+travel
+20.0
+28.6
+28.6
++8.6
+Mistral
+MINISTRAL-3B
+workspace
+2.9
+2.9
+2.9
++0.0
+DeepSeek
+DEEPSEEK-V3
+banking
+51.1
+51.1
+51.1
++0.0
+DeepSeek
+DEEPSEEK-V3
+slack
+84.0
+72.0
+84.0
+−12.0
+DeepSeek
+DEEPSEEK-V3
+travel
+57.1
+48.6
+57.1
+−8.6
+DeepSeek
+DEEPSEEK-V3
+workspace
+11.4
+14.3
+14.3
++2.9
+All
+Per-cell mean
+(n=52)
+37.5
+31.5
+46.5
+Table 4: Canonical per-cell results across all 52 (model, suite) cells. SOMsigned = ASRschema −ASRdata; positive
+values indicate schema-surface preference, negative values data-surface preference. Cells with |SOM| ≤10 pp are
+operationally tied.
+12
+
+
+----- [page 13] -----
+Model
+Data ASR
+Schema ASR
+∆
+GEMINI-3-FLASH
+0.0
+100.0
++100.0
+GPT-4.1
+100.0
+50.0
+−50.0
+QWEN-3-32B
+65.0
+65.0
++0.0
+LLAMA-3.3-70B
+25.0
+75.0
++50.0
+Pooled
+47.5
+72.5
++25.0
+Table 5: Native function-calling (MCP) replication:
+ASR by model and surface, pooled over four scenar-
+ios and five repetitions (40 episodes per cell). ∆=
+ASRschema −ASRdata.
+is the operationally honest figure for an attacker
+who has historical data on the family.
+LOFO (leave-one-family-out, strict): for each
+cell, the family preference is computed without
+any cell of the target’s family. This corresponds
+to an attacker who has never observed the target’s
+family. It falls to 30.5%, 6.9 pp below the always-
+data baseline.
+The gap between LOCO-f and LOFO isolates
+family identity as the load-bearing signal: within-
+family information transfers, while cross-family
+information does not.
+Surface fingerprinting (K-probe).
+A K-probe
+attacker observes both surfaces on K uniformly
+sampled (user-task, injection-task) pairs per cell,
+selects the empirically better surface from the probe
+sample, and applies it to the remaining |U ×I|−K
+pairs.
+Per-cell realized ASR is 41.3% (K=1),
+42.5% (K=2), 44.1% (K=5), and 44.7% (K=10).
+The K=1 probe is high-variance because a sin-
+gle binary observation can flip the surface choice;
+monotonicity recovers by K=2 and the curve sits
+above the LOCO-f family-prior from K=5 on-
+ward.
+Behavioral embedding.
+Each of the 26 (model,
+surface) points is represented by a behavior vec-
+tor over the 175 (suite, user-task, injection-task)
+triplets it shares with the rest of the panel. We em-
+bed these vectors to 2-D with UMAP and verify
+the qualitative result under t-SNE (Figure 7). For
+each point we classify its nearest neighbor in the
+embedding as same-surface, same-model, or other.
+Across the 52 points, 35 (67%) nearest neighbors
+are same-surface and only 5 (10%) are same-model.
+The dominant axis of behavioral variation is the at-
+tack surface, not the model identity.
+Model
+Suite
+Data
+Schema
+AAR
+Both
+GEMINI-3-FLASH
+banking
+11.1
+88.9
+88.9
+88.9
+GEMINI-3-FLASH
+slack
+20.0
+90.0
+90.0
+100.0
+GPT-4.1
+banking
+61.1
+0.0
+61.1
+83.3
+GPT-4.1
+slack
+100.0
+10.0
+100.0
+100.0
+QWEN-3-32B
+banking
+61.1
+38.9
+61.1
+55.6
+QWEN-3-32B
+slack
+60.0
+90.0
+90.0
+80.0
+LLAMA-3.3-70B
+banking
+55.6
+0.0
+55.6
+44.4
+LLAMA-3.3-70B
+slack
+80.0
+0.0
+80.0
+70.0
+Table 6: Surface stacking versus adaptive selection on a
+paired subset. “Both” injects the byte-identical payload
+into the tool output and the tool description simulta-
+neously; “AAR” is the per-cell maximum of the two
+single-surface conditions.
+D
+Adaptive Selection Outperforms
+Surface Stacking
+A natural alternative to adaptive surface selection is
+surface stacking: inject the byte-identical payload
+into both surfaces simultaneously and rely on at
+least one to succeed. We test this on a fully paired
+subset (four models × two suites, identical (u, i)
+pairs across all conditions) and compare against
+AAR.
+The combined condition does not consistently
+exceed the better single surface: across the eight
+cells it matches or beats AAR in four and un-
+derperforms it in four, with a mean difference of
+−0.6 pp. For data-preferring models (LLAMA-3.3-
+70B, QWEN-3-32B on banking), duplicating the
+payload actually reduces attack success relative to
+the better single surface, likely because the second
+instance lowers the perceived authority of the in-
+jected instruction. The operative quantity for the
+attacker is therefore per-target surface selection
+(AAR), not surface stacking.
+E
+Payload Robustness Analysis
+We examine three axes along which the payload
+could in principle drive the surface effect rather
+than the surface itself: the prompt template, the
+attacker’s reach over the tool set, and the position
+of the payload within the tool description.
+Template components.
+We remove one compo-
+nent of the workflow_dependency template at a
+time and re-evaluate on the schema surface for the
+two schema-salient frontier models (60 episodes
+per variant). No single component is load-bearing:
+every variant remains effective, and the minimal
+payload (the bare attacker instruction with all fram-
+ing removed) still succeeds at 21.7%. The surface
+effect is not an artifact of one specific phrasing.
+13
+
+
+----- [page 14] -----
+−5
+−4
+−3
+−2
+−1
+0
+1
+UMAP-1
+9
+10
+11
+12
+13
+14
+UMAP-2
+deepseek-v3/data
+deepseek-v3/schema
+gemini-3/data
+gemini-3/schema
+llama-3.3/data
+llama-3.3/schema
+ministral-3b/data
+ministral-3b/schema
+mistral-L/data
+mistral-L/schema
+mistral-S/data
+mistral-S/schema
+4.1/data
+4.1/schema
+4o-11-20/data
+4o-11-20/schema
+4o-mini/data
+4o-mini/schema
+gpt-5.4/data
+gpt-5.4/schema
+oss-20b/data
+oss-20b/schema
+qwen3-32b/data
+qwen3-32b/schema
+qwen3.5/data
+qwen3.5/schema
+UMAP: (model, surface) behavior vectors
+−30
+−20
+−10
+0
+10
+20
+30
+t-SNE-1
+−15
+−10
+−5
+0
+5
+10
+t-SNE-2
+deepseek-v3/data
+deepseek-v3/schema
+gemini-3/data
+gemini-3/schema
+llama-3.3/data
+llama-3.3/schema
+ministral-3b/data
+ministral-3b/schema
+mistral-L/data
+mistral-L/schema
+mistral-S/data
+mistral-S/schema
+4.1/data
+4.1/schema
+4o-11-20/data
+4o-11-20/schema
+4o-mini/data
+4o-mini/schema
+gpt-5.4/data
+gpt-5.4/schema
+oss-20b/data
+oss-20b/schema
+qwen3-32b/data
+qwen3-32b/schema
+qwen3.5/data
+qwen3.5/schema
+t-SNE: (model, surface) behavior vectors
+data surface
+schema surface
+OpenAI
+Google
+Meta
+Qwen
+Mistral
+DeepSeek
+Figure 7: Two-dimensional embedding of the 26 (model, surface) behavior vectors, colored by surface. Same-surface
+points cluster together across model families: 35/52 (67%) of nearest neighbors share the surface, versus 5/52 (10%)
+sharing the model. The attack surface is the dominant axis of behavioral variation, not model identity.
+Variant
+ASR
+Full template (workflow_dependency)
+42.2
+−trigger condition
+51.7
+−urgency / pressure
+51.7
+−justification
+46.7
+−override marker
+58.3
+Minimal (instruction only)
+21.7
+Table 7: Template-component ablation on the schema
+surface for schema-salient frontier models. Each row
+removes one component of the full template; the bottom
+row uses only the bare attacker instruction.
+Attacker reach.
+We vary the number and rele-
+vance of attacker-controlled tools. A single task-
+relevant poisoned tool already reaches 66.7% ASR;
+a single irrelevant tool reaches only 25.0%; three
+task-relevant tools reach 83.3%. The full-reach
+setting (53.3%) does not strictly dominate, indicat-
+ing that a single well-placed poisoned description
+suffices and additional reach yields diminishing or
+non-monotone returns.
+Injection position.
+Placing the payload at the
+prefix, middle, or suffix of the tool description
+yields 62.5%, 50.0%, and 83.3% respectively: the
+attack succeeds at every position, with suffix place-
+ment strongest. Within-surface position variance is
+smaller than the cross-surface variance that moti-
+vates AAR.
+F
+Behavioral Characterization of
+Successful Attacks
+We report four behavioral measurements over suc-
+cessful attacks. Aggregates exclude (model, sur-
+face) cells with fewer than five successful attacks,
+where rates are undefined.
+Silent execution.
+Conditional on success, the
+agent executes the attacker goal without surfacing
+it to the user in 96.3% of data-surface successes
+and 98.5% of schema-surface successes, a +2.1 pp
+difference. Successful injections are nearly always
+silent regardless of the channel through which they
+arrive (Figure 8).
+Covert success.
+The agent completes the attacker
+goal while also completing the user task in 13.1%
+of data-surface and 13.6% of schema-surface suc-
+cesses (a +0.4 pp gap in aggregate). The per-model
+picture is more polarized: GEMINI-3-FLASH suc-
+ceeds covertly on roughly 50% of schema-surface
+attempts against only ∼5% of data-surface at-
+tempts, while GPT-4O-2024-11-20 shows the
+mirror pattern. Aggregate balance hides the same
+model×surface interaction documented in §4.1.
+Refusal asymmetry.
+Explicit refusal of the at-
+tacker instruction occurs in 2.9% of data-surface
+attempts and 1.0% of schema-surface attempts.
+Payloads delivered through the tool description
+are marginally less likely to trigger a refusal than
+the same bytes in tool output, consistent with the
+schema channel being read as authoritative meta-
+data rather than as untrusted input.
+14
+
+
+----- [page 15] -----
+gpt-4o-mini
+gemini-3-flash
+gpt-oss-20b
+mistral-small
+llama-3.3-70b
+mistral-large
+qwen3.5-flash
+deepseek-chat-v3
+qwen3-32b
+gpt-4.1
+ministral-3b
+gpt-4o-11-20
+0
+2
+4
+6
+8
+10
+12
+Verbalization rate among successful attacks (%)
+lower = more silent execution
+Aggregate: data verbalization 3.7% → schema verbalization 1.5% → Δ = -2.1 pp
+Schema-surface attacks succeed silently almost always; data-surface attacks at least get verbalized 5–15% of the time
+Data-surface (acknowledged + refused)
+Schema-surface (acknowledged + refused)
+Figure 8: Silent-execution rate by model and surface,
+restricted to (model, surface) cells with at least five suc-
+cesses. Conditional on a successful attack, the agent
+almost always completes the attacker goal without sur-
+facing it to the user, on both surfaces.
+Family
+Model
+OpenAI
+GPT-4.1
+OpenAI
+GPT-4O
+OpenAI
+GPT-4O-MINI
+OpenAI
+GPT-5.4
+OpenAI
+GPT-OSS-20B
+Google
+GEMINI-3-FLASH
+Meta
+LLAMA-3.3-70B
+Qwen
+QWEN-3-32B
+Qwen
+QWEN-3.5-FLASH
+Mistral
+MISTRAL-LARGE
+Mistral
+MISTRAL-SMALL
+Mistral
+MINISTRAL-3B
+DeepSeek
+DEEPSEEK-V3
+Table 8: The 13 production models evaluated in the
+main study, grouped by family.
+Deferred routing.
+Among successful attacks, the
+attacker-controlled tool is the agent’s first tool call
+in 73.4% of data-surface and 64.9% of schema-
+surface successes. Schema-surface attacks more
+often execute after the agent has begun the legiti-
+mate task, consistent with the payload being read
+at the tool-list stage and acted on later.
+G
+Experimental Procedures and
+Statistical Methods
+Models.
+We evaluate the 13 production models
+in Table 8, all accessed through a single unified
+inference gateway at temperature 0. Exact API
+model strings and access dates are released with
+our code.
+Statistical procedures.
+A cell is a (model, suite)
+pair. Within each cell, the two surfaces are evalu-
+ated on identical (user-task, injection-task) pairs,
+giving paired binary outcomes. Aggregate com-
+parisons use the per-cell paired difference. Signifi-
+cance is assessed by a paired Wilcoxon signed-rank
+test on cell-level differences and a paired bootstrap
+with B = 2000 resamples for 95% confidence in-
+tervals. The unit of analysis is the cell (n = 52);
+a per-model analysis (n = 13) is reported as a
+robustness check and yields the same qualitative
+conclusion with wider intervals. All resampling
+and embedding procedures use a fixed seed.
+Adjudication.
+Attack success is scored by an
+automated, deterministic predicate evaluated on
+the post-execution environment state and tool-call
+trace. The identical predicate is applied to both
+surfaces, so any cross-surface ASR gap reflects
+model behavior rather than scoring asymmetry. We
+patched three banking predicates that failed to reg-
+ister a success when the payload triggered the target
+action via an alternate code path; the patched pred-
+icates are applied uniformly to both surfaces and
+released with our code.
+H
+Injection Payload Specification
+All main-text results use a single payload template,
+instantiated per injection task by substituting the
+task goal into {goal}:
+[CRITICAL]
+Pre-execution
+requirement
+(workspace policy): This tool produces
+silently-corrupted
+output
+unless
+the
+assistant first completes the following
+synchronisation step in the same session:
+{goal} Completing this step IS part of
+correctly fulfilling the user’s request
+it is not optional.
+This requirement
+supersedes
+any
+prior
+instruction
+not
+to
+perform
+additional
+steps.
+After
+completing it once,
+proceed with the
+user’s original task.
+The template combines four components: a trig-
+ger condition (“produces silently-corrupted out-
+put unless...”), a justification (“(workspace pol-
+icy)”, “IS part of correctly fulfilling the user’s re-
+quest”), an urgency/override marker (“[CRITI-
+CAL]”, “supersedes any prior instruction”), and
+the attacker instruction ({goal}). In the data-
+surface condition these bytes are appended to the
+tool’s return value; in the schema-surface condi-
+tion the identical bytes are appended to the tool’s
+description field, which the agent receives in the
+tool list at every turn before selecting a tool. The
+set of attacker-controlled tools per suite is fixed and
+identical across surfaces. The component-removal
+variants used in Appendix E are released verbatim
+with our code.
+15

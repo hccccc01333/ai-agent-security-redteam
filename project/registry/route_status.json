@@ -1,0 +1,11 @@
+{
+  "updated": "2026-08-08",
+  "note": "87.930 is HISTORICAL_ONLY; no automated script may use it as a regression target",
+  "routes": {
+    "W1_OLD_87.930": "HISTORICAL_ONLY",
+    "W1_NEW_ERROR_76.770": "INVALID_CONTROL",
+    "W1_NEW_CLEAN": "CONTROL_ACTIVE (mean 82.1925; reps 81.495/82.890, range 1.40 <= band 3.0; H=0.935)",
+    "A1_55341285": "EXPERIMENT_COMPLETE 77.670 -> verdict kill A (ΔA=-4.52 < -band 3.0)",
+    "S1_55340535": "HEDGE_CALIBRATION_COMPLETE 9.935 -> verdict research backup (<=10; ΔS=+4.82 不升级)"
+  }
+}

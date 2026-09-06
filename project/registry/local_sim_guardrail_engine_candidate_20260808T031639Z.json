@@ -1,0 +1,25 @@
+{
+  "timestamp": "20260808T031639Z",
+  "variant": "engine_candidate.py",
+  "candidates": 400,
+  "levels": {
+    "15.0": [
+      {
+        "salt": "",
+        "runtime_s": 0.59,
+        "error": "\\Hzz\\AppData\\Local\\Temp\\tmpv179xv1s\\sim_runner.py\", line 115, in interact\n    \"args\": {\"to\": to_m.group(1) if to_m else \"user@corp.invalid\",\n                   ~~~~~~~~~~^^^\nIndexError: no such group\n"
+      },
+      {
+        "salt": "1",
+        "runtime_s": 0.59,
+        "error": "\\Hzz\\AppData\\Local\\Temp\\tmpv179xv1s\\sim_runner.py\", line 115, in interact\n    \"args\": {\"to\": to_m.group(1) if to_m else \"user@corp.invalid\",\n                   ~~~~~~~~~~^^^\nIndexError: no such group\n"
+      },
+      {
+        "salt": "2",
+        "runtime_s": 0.59,
+        "error": "\\Hzz\\AppData\\Local\\Temp\\tmpv179xv1s\\sim_runner.py\", line 115, in interact\n    \"args\": {\"to\": to_m.group(1) if to_m else \"user@corp.invalid\",\n                   ~~~~~~~~~~^^^\nIndexError: no such group\n"
+      }
+    ]
+  },
+  "headline_strictness": 15.0
+}

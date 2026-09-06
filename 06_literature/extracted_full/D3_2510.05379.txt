@@ -1,0 +1,593 @@
+
+
+----- [page 1] -----
+Pre-print
+AUTODAN-REASONING: ENHANCING STRATEGIES EX-
+PLORATION BASED JAILBREAK ATTACKS WITH TEST-
+TIME SCALING
+Xiaogeng Liu 1
+Chaowei Xiao 1
+1 Johns Hopkins University
+ABSTRACT
+Recent advancements in jailbreaking large language models (LLMs), such as
+AutoDAN-Turbo, have demonstrated the power of automated strategy discov-
+ery. AutoDAN-Turbo employs a lifelong learning agent to build a rich library
+of attack strategies from scratch. While highly effective, its test-time generation
+process involves sampling a strategy and generating a single corresponding at-
+tack prompt, which may not fully exploit the potential of the learned strategy
+library. In this paper, we propose to further improve the attack performance
+of AutoDAN-Turbo through test-time scaling. We introduce two distinct scal-
+ing methods: Best-of-N and Beam Search. The Best-of-N method generates N
+candidate attack prompts from a sampled strategy and selects the most effec-
+tive one based on a scorer model. The Beam Search method conducts a more
+exhaustive search by exploring combinations of strategies from the library to
+discover more potent and synergistic attack vectors. According to the experi-
+ments, the proposed methods significantly boost performance, with Beam Search
+increasing the attack success rate by up to 15.6 percentage points on Llama-
+3.1-70B-Instruct and achieving a nearly 60% relative improvement against the
+highly robust GPT-o4-mini compared to the vanilla method. Code is available at
+https://github.com/SaFoLab-WISC/AutoDAN-Reasoning
+1
+INTRODUCTION
+Large Language Models (LLMs) have become integral to numerous applications, but their widespread
+deployment necessitates robust safety measures to prevent misuse. Safety alignment aims to ensure
+LLMs behave responsibly, yet they remain vulnerable to jailbreak attacks, where crafted prompts
+bypass their safety protocols (Wei et al., 2023; Zou et al., 2023; Liu et al., 2024). Automated
+red-teaming tools are crucial for proactively identifying and mitigating these vulnerabilities.
+The AutoDAN-Turbo framework (Liu et al., 2025) represents a significant step forward in automated
+jailbreaking. It introduces a lifelong learning agent that autonomously discovers, evolves, and
+combines diverse attack strategies without human intervention. By constructing a dynamic strategy
+library from its interactions, AutoDAN-Turbo can generate effective and novel jailbreak prompts,
+achieving state-of-the-art performance in black-box settings.
+However, the test-time procedure of AutoDAN-Turbo, while efficient, leaves room for improve-
+ment. After retrieving a set of relevant strategies from its library, the attacker LLM generates a
+single jailbreak prompt. This one-shot generation might not produce the optimal attack, even with
+good strategies. The inherent stochasticity and creativity of the attacker LLM mean that multiple
+generations from the same strategic input could yield prompts of varying effectiveness.
+To address this, we propose AutoDAN-Reasoning, an enhanced version of our framework that lever-
+ages sophisticated test-time scaling methods to further amplify its jailbreak capabilities. AutoDAN-
+Reasoning utilizes the rich strategy library curated by the original AutoDAN-Turbo and introduces
+two powerful test-time search algorithms: Best-of-N and Beam Search. These methods allow for
+*Corresponding to xliu316@jhu.edu
+1
+arXiv:2510.05379v2 [cs.CR] 8 Oct 2025
+
+
+----- [page 2] -----
+Pre-print
+Figure 1: In this paper, we introduce Best-of-N (center) and Beam Search (right) as test-time scaling
+methods to improve upon the original AutoDAN-Turbo pipeline (left).
+more deliberate and optimized exploitation of the learned strategies, significantly improving the
+probability of a successful jailbreak. The core contributions of AutoDAN-Reasoning are as follows:
+• Best-of-N Scaling. This method enhances the attack by generating multiple candidate
+prompts for a given strategy. Specifically, after retrieving a set of relevant strategies based
+on the target’s previous response, the attacker LLM generates N distinct jailbreak prompts.
+Each prompt is then sent to the target model, and the resulting responses are evaluated by a
+scorer LLM. The prompt that yields the highest jailbreak score is selected as the optimal
+attack for that turn. This approach mitigates the risk of a suboptimal, one-shot generation by
+exploring a variety of prompt formulations.
+• Beam Search Scaling. To explore the synergistic effects of combining multiple strategies,
+we introduce a beam search algorithm. This method begins by retrieving a broader pool of
+the top-K most relevant strategies from the library (where K is larger than in the original
+framework’s retrieval mechanism). It then constructs a “beam” of the most promising initial
+strategy combinations. In an iterative process, these combinations are expanded by adding
+new strategies from the pool, and the new jailbreak prompts are generated and scored. By
+retaining only the top-W (beam width) combinations at each step, the algorithm efficiently
+navigates the vast search space of strategy compositions. This allows AutoDAN-Reasoning
+to dynamically discover and deploy the most potent combination of tactics tailored to the
+immediate conversational context, leading to a more sophisticated and powerful attack.
+The proposed AutoDAN-Reasoning builds directly on the foundation of AutoDAN-Turbo, proposing
+a plug-in enhancement that boosts its final ASR without altering its core lifelong learning and strategy
+discovery mechanism. According to the experiments, the proposed method achieves significant gains
+across all tested models. Notably, our Beam Search approach boosts the attack success rate on Llama-
+3.1-70B-Instruct to 84.5% and on the more challenging GPT-o4-mini to 33.7%, representing absolute
+improvements of 15.6 and 12.5 percentage points, respectively, over the original AutoDAN-Turbo.
+2
+RELATED WORKS
+Test-time Scaling. Test-time scaling (Snell et al., 2024) in large language models refers to a set of
+techniques that enhance the quality of a model’s output by dedicating more computational resources
+during the inference, or “test,” phase. This approach improves performance without the need to retrain
+or alter the model’s underlying parameters. Among the most prominent test-time scaling methods
+are Best-of-N and Beam Search. Best-of-N is a straightforward yet effective technique. It involves
+generating multiple (N) potential outputs from the LLM for a given input prompt. Subsequently,
+a separate scoring mechanism, often a reward model or a verifier trained to align with human
+2
+
+
+----- [page 3] -----
+Pre-print
+preferences, evaluates these N candidates. The output with the highest score is then selected as the
+final response. Beam search is a more sophisticated algorithm that optimizes the scoring mechanism’s
+return at each intermediate step of the solution process rather than only at the end. It maintains a
+“beam” of the most promising partial solutions and expands them step-by-step, using the scoring
+mechanism’s per-step predictions to guide the search toward a high-quality final answer.
+Jailbreak Attacks. The ongoing effort to align LLMs with human values and safety principles has
+been met with a persistent and evolving counter-effort to circumvent these guardrails, a practice known
+as “jailbreaking” (Zou et al., 2023; Chao et al., 2023; Liu et al., 2024; 2025). These attacks involve
+crafting malicious prompts to elicit harmful or forbidden content that the model is designed to refuse.
+The landscape of these attacks has matured from manual, linguistic tricks to sophisticated, automated
+methods that target the core computational processes of the models themselves. Early and ongoing
+jailbreak research has focused on prompt-level manipulations. These techniques include role-playing
+scenarios, where the model is asked to adopt a persona without ethical constraints (walkerspider,
+2022; Shen et al., 2023; Zeng et al., 2024), and obfuscation tactics that use ciphers (Yuan et al., 2024;
+Lv et al., 2024), non-natural language (Jiang et al., 2024), or persuasion strategies (Shen et al., 2023)
+to disguise malicious intent.
+Among these attacks, AutoDAN-Turbo (Liu et al., 2025) plays a critical and unique role by shifting
+the focus from crafting individual prompts or jailbreak strategies to the autonomous discovery of
+underlying jailbreak strategies. It operates as a lifelong learning agent, systematically exploring the
+attack space through a multi-agent framework. By analyzing successful and failed jailbreak attempts,
+it distills the core tactics into a structured “strategy library.” This allows AutoDAN-Turbo to not only
+reuse and refine effective strategies but also to combine them in novel ways, creating a dynamic and
+ever-evolving arsenal. This approach distinguishes it from methods that rely on predefined attack
+patterns or direct prompt optimization, enabling it to uncover a broader and more diverse set of
+vulnerabilities in a black-box setting.
+A recent and significant paradigm shift in adversarial tactics has been the weaponization of test-time
+compute scaling—the principle of dedicating additional computational resources during inference
+to improve a model’s performance. Originally developed to enhance model reasoning and problem-
+solving capabilities, these techniques have been ingeniously repurposed as powerful attack vectors.
+One of the leading frameworks in this domain is Adversarial Reasoning (Sabbaghi et al., 2025). This
+approach formulates jailbreaking as a reasoning problem, using the target model’s own capabilities
+against it. Instead of relying on simple binary feedback (success/failure), it uses a continuous loss
+signal derived from the target model’s output probabilities to guide a search through the prompt space.
+This is implemented with a system of LLMs where an “Attacker” proposes prompts, a “Feedback”
+module analyzes the target’s response and loss to suggest improvements, and a “Refiner” synthesizes
+a new, more potent prompt. Each iteration represents a cycle of test-time compute, allowing the
+attack to “think harder” and systematically navigate toward a successful jailbreak. Another highly
+effective technique, LIAR (Beetham et al., 2025), reframes the problem by treating the jailbreak
+itself as an alignment task. LIAR employs a best-of-N sampling strategy, a classic test-time compute
+method, but for malicious ends. An auxiliary “prompter” LLM generates N candidate adversarial
+suffixes for a harmful query. These are then evaluated against the target model, and the suffix that
+most successfully elicits a harmful response is selected, effectively using the target’s behavior as an
+“unsafe” reward signal.
+While methods like Adversarial Reasoning and LIAR demonstrate the power of test-time compute,
+they primarily focus on directly generating or refining attack strings. In this paper, we equip the
+state-of-the-art black-box jailbreak method, AutoDAN-Turbo, with a test-time scaling mechanism that
+operates at a higher level of abstraction (i.e., the jailbreak strategies). By integrating Best-of-N and
+Beam Search algorithms into its inference process, we allow AutoDAN-Turbo to more deliberately
+explore its vast library of learned semantic strategies, identifying not only the most potent jailbreak
+prompts based on retrieved strategies but also their most effective combinations in real-time. This
+synthesis of lifelong strategy learning and test-time optimization allows our enhanced framework,
+AutoDAN-Reasoning, to significantly further enhance attack performance and adaptability against
+even the most robustly aligned models.
+3
+
+
+----- [page 4] -----
+Pre-print
+3
+AUTODAN-REASONING
+We first provide a brief overview of the original AutoDAN-Turbo framework and then detail our
+proposed test-time scaling enhancements.
+3.1
+RECAP OF THE AUTODAN-TURBO FRAMEWORK
+The AutoDAN-Turbo pipeline consists of three main modules:
+• Attack Generation and Exploration: An attacker LLM generates jailbreak prompts
+based on strategies, a target LLM provides responses, and a scorer LLM evaluates the
+maliciousness of the responses.
+• Strategy Library Construction: A summarizer LLM analyzes successful attack logs to
+extract, define, and store new jailbreak strategies in a library. The key for retrieval is the
+embedding of the refusal response that the strategy successfully overcame.
+• Jailbreak Strategy Retrieval: During an attack, the system retrieves the most relevant
+strategies from the library based on the target’s current response to guide the next generation
+attempt of the attacker LLM.
+At test time, the attacker LLM generates an initial jailbreak prompt. Based on the target LLM’s
+response, the system retrieves the most relevant strategies from the learned jailbreak strategy library
+to guide the attacker LLM in generating a new jailbreak prompt for the next iteration. This process
+repeats for a fixed number of iterations or until a successful jailbreak is achieved.
+3.2
+TEST-TIME SCALING
+The core idea of our proposed test-time scaling is to redefine the prompt generation phase. Rather
+than using the retrieved strategies to directly generate a single jailbreak prompt, our method initiates
+an exhaustive search process to discover the optimal prompt that maximizes the attack perfromance.
+3.2.1
+BEST-OF-N SCALING
+The Best-of-N method is the simpler of our two proposals. The procedure at each attack iteration
+during the test stage is modified as follows:
+1. Strategy Retrieval: As in the original framework, retrieve the most relevant strategies from
+the library based on the target’s previous response.
+2. N-Candidate Generation: Instruct the attacker LLM to generate N distinct jailbreak
+prompts using the retrieved strategies.
+3. Parallel Evaluation: Feed all N candidate prompts to the target LLM to get N responses.
+Then, use the scorer LLM to assign a score to each of the N responses.
+4. Selection and Refinement: Select the prompt that elicited the highest-scoring response
+as the attack for the current iteration. This prompt-response pair and its score inform the
+strategy retrieval for the next iteration. To further guide the optimization process, the attacker
+LLM is also prompted with the this jailbreak attempt and its result.
+This method increases the probability of finding a highly effective prompt by exploring variations in
+the attacker LLM’s output for a fixed strategy. The process is formalized in Algorithm 1.
+3.2.2
+BEAM SEARCH SCALING
+The Beam Search method aims to find the best combination of strategies. This is particularly useful
+as AutoDAN-Turbo’s library contains many atomic strategies, and their combination can lead to
+significantly stronger attacks. We define a beam search over the space of strategy combinations.
+Let the beam width be W and the maximum combination size be C.
+1. Initial Pool Selection: At the start of the attack, retrieve a larger-than-usual pool of the
+top-K most relevant strategies from the library, where K > W.
+4
+
+
+----- [page 5] -----
+Pre-print
+Algorithm 1 Best-of-N Scaling
+1: procedure BESTOFNATTACK(Rprev, N)
+2:
+S ←RetrieveStrategies(library, Rprev)
+3:
+Candidates ←∅
+4:
+for i ←1 to N do
+5:
+Pi ←AttackerLLM.generate(S)
+6:
+Ri ←TargetLLM.respond(Pi)
+7:
+scorei ←ScorerLLM.evaluate(Ri)
+8:
+Candidates.add((Pi, Ri, scorei))
+9:
+end for
+10:
+(Pbest, Rbest, scorebest) ←arg max(P,R,s)∈Candidates s
+11:
+return Pbest, Rbest, scorebest
+12: end procedure
+2. Initialization (t=1): For each of the top-W individual strategies from the pool, generate a
+prompt and get its score. These W strategies (and their corresponding prompts/scores) form
+the initial beam.
+3. Expansion (t > 1): For each of the W strategy combinations currently in the beam, create
+new candidate combinations by appending one unused strategy from the initial pool of K
+strategies. This creates a set of new, larger combinations.
+4. Evaluation and Pruning: Generate a prompt for each new candidate combination and
+obtain its score. From all the newly generated candidates, select the top-W performing
+combinations to form the new beam for the next step.
+5. Termination: Repeat the expansion and pruning steps up to the maximum combination size
+C. The final output of the current turn is the prompt generated from the highest-scoring
+strategy combination found throughout the search. In the next turn of generation, to further
+guide the optimization process, the attacker LLM is also prompted with the this jailbreak
+attempt and its result.
+This beam search approach enables the system to systematically generate and assess intricate strategy
+combinations. This surpasses the original AutoDAN-Turbo’s approach of using only a narrow top-K
+(where K is relatively small) selection of retrieved strategies, and facilitates the discovery of potent,
+synergistic combinations during the testing phase. The process is formalized in Algorithm 2.
+4
+EXPERIMENTS
+4.1
+EXPERIMENTS SETUP
+Datasets. We evaluate our method and baselines on the Harmbench dataset (Mazeika et al., 2024),
+which contains 400 diverse and malicious requests. These requests are difficult to find via search
+engines, making the dataset an excellent benchmark for assessing the practical risks of jailbreak
+attacks on LLMs.
+Large Language Models.
+We evaluate our method on both open-source and closed-source
+large language models. The open-source targets are Llama-3.1-8B-Instruct and Llama-3.1-70B-
+Instruct (Dubey et al., 2024), while the closed-source target is GPT-o4-mini1 (OpenAI, 2025). For
+all experiments, we enforced deterministic generation by setting the temperature to zero and limited
+the maximum output to 4096 tokens. We use DeepSeek-R1 DeepSeek-AI et al. (2025) as both the
+attacker and scorer for our AutoDAN-Reasoning and the original AutoDAN-Turbo.
+Metrics. Following the original AutoDAN-Turbo’s evaluation settings, to ensure a fair and standard-
+ized evaluation of jailbreak attacks, we employ the Harmbench Attack Success Rate (ASR), which
+uses a fine-tuned Llama-2-13B classifier to determine if a response is both relevant to the query and
+harmful (Mazeika et al., 2024). Higher values indicate more effective jailbreak methods.
+1Version: 2025-04-16
+5
+
+
+----- [page 6] -----
+Pre-print
+Algorithm 2 Beam Search Scaling
+1: procedure BEAMSEARCHATTACK(Rprev, W, C, K)
+2:
+Spool ←RetrieveTopKStrategies(library, Rprev, K)
+3:
+Beam ←∅
+4:
+for i ←1 to W do
+5:
+comboi ←{Spool[i]}
+6:
+Pi ←AttackerLLM.generate(comboi)
+7:
+scorei ←ScorerLLM.evaluate(TargetLLM.respond(Pi))
+8:
+Beam.add((comboi, Pi, scorei))
+9:
+end for
+10:
+for c ←2 to C do
+11:
+Candidates ←∅
+12:
+for (combo, P, score) ∈Beam do
+13:
+for Snew ∈Spool \ combo do
+14:
+new_combo ←combo ∪{Snew}
+15:
+Pnew ←AttackerLLM.generate(new_combo)
+16:
+scorenew ←ScorerLLM.evaluate(. . . )
+17:
+Candidates.add((new_combo, Pnew, scorenew))
+18:
+end for
+19:
+end for
+20:
+Beam ←Top W candidates from Candidates by score
+21:
+end for
+22:
+(Pbest, Rbest, scorebest) ←arg max(P,R,s)∈Beam s
+23:
+return Pbest, Rbest, scorebest
+24: end procedure
+Table 1: Attack success rate (%) on different models
+AutoDAN-Turbo
+Turbo-Search (Best-of-N)
+Turbo-Search (Beam Search)
+N=1
+N=2
+N=4
+N=8
+W=2
+W=4
+W=8
+Llama-3.1-8B-Ins
+67.8
+71.0
+78.6
+79.4
+68.1
+76.4
+81.3
+Llama-3.1-70B-Ins
+68.9
+72.4
+81.2
+82.0
+70.3
+83.6
+84.5
+GPT-o4-mini
+21.2
+22.4
+24.9
+26.1
+26.8
+28.0
+33.7
+Implementation. To evaluate the specific improvement from our test-time scaling method, we
+compare it against AutoDAN-Turbo using their officially provided 2, pre-trained jailbreak strategy
+library. We utilize the AutoDAN-Turbo-R version to support reasoning LLMs like DeepSeek-
+R1 DeepSeek-AI et al. (2025). Hyperparameters, such as N for the best-of-N strategy, will be detailed
+in the corresponding results sections.
+4.2
+MAIN RESULTS
+Our main results, presented in Tab. 1 and Fig. 2, demonstrate that both proposed test-time scaling
+methods, Best-of-N and Beam Search, significantly enhance the attack performance of AutoDAN-
+Turbo across all tested models.
+The Best-of-N method provides a consistent and notable improvement over the baseline AutoDAN-
+Turbo, which is equivalent to N=1. As the number of candidate prompts (N) increases, the Attack
+Success Rate (ASR) rises accordingly for every target model. On Llama-3.1-8B-Instruct, increasing
+N from 1 to 8 boosts the ASR from 67.8% to 79.4%, an absolute improvement of 11.6 percentage
+points. A similar and even more pronounced trend is observed for Llama-3.1-70B-Instruct, where the
+ASR climbs from 68.9% to 82.0%, a gain of 13.1 points. Even against the more robust GPT-o4-mini,
+the ASR improves from 21.2% to 26.1%. This trend confirms that exploring multiple linguistic
+instantiations of a given strategy allows the attacker to overcome the stochasticity of generation and
+find a more potent attack vector. However, we also observe diminishing returns, as the performance
+2https://github.com/SaFoLab-WISC/AutoDAN-Turbo
+6
+
+
+----- [page 7] -----
+Pre-print
+(a) Llama3.1-8B-Instruct
+(b) Llama3.1-70B-Instruct
+(c) GPT-o4-mini
+Figure 2: Comparison of attack success rates using AutoDAN-Reasoning with Best-of-N and Beam
+Search test-time scaling strategies across three target models. The dashed blue line represents the
+baseline (vanilla AutoDAN-Turbo) performance.
+gain from N=4 to N=8 is less pronounced than from N=2 to N=4, suggesting a trade-off between
+computational cost and marginal ASR improvement.
+The Beam Search method demonstrates even more potent results, particularly against the strongest
+target model. By exploring combinations of strategies instead of just utilizing a single one, this
+method uncovers more complex and effective attack vectors. For the Llama models, Beam Search
+with a beam width (W) of 8 achieves the highest ASR, reaching 81.3% on the 8B model and 84.5%
+on the 70B model. The most striking result is on GPT-o4-mini, where Beam Search at W = 8
+reaches an ASR of 33.7%. This represents a 12.5 percentage point improvement over the baseline
+and is significantly higher than the 26.1% ASR achieved by Best-of-N at N=8. This highlights the
+superior ability of Beam Search to find novel attack paths through strategy combination. A direct
+comparison of the two methods reveals a critical insight: while Best-of-N is effective at exploring
+jailbreak prompts from one single strategy, Beam Search excels at finding synergistic combinations
+of strategies. This capability is especially crucial for jailbreaking more advanced, heavily aligned
+models like GPT-o4-mini.
+5
+CONCLUSIONS
+In this paper, we propose a simple yet effective enhancement of the original AutoDAN-Turbo (Liu
+et al., 2025) by introducing test-time scaling methods. Our experiments demonstrate that both
+Best-of-N and Beam Search scaling significantly improve jailbreak success rates across multiple
+state-of-the-art LLMs, with Beam Search proving particularly effective at creating synergistic strategy
+combinations to defeat highly robust models. This work underscores the value of dedicating inference-
+time compute to more thoroughly explore a learned strategy space. The primary limitation of this
+approach is the increased computational cost and latency associated with generating and evaluating
+multiple candidate prompts.
+REFERENCES
+James Beetham, Souradip Chakraborty, Mengdi Wang, Furong Huang, Amrit Singh Bedi, and
+Mubarak Shah. Liar: Leveraging inference time alignment (best-of-n) to jailbreak llms in seconds,
+2025. URL https://arxiv.org/abs/2412.05232.
+Patrick Chao, Alexander Robey, Edgar Dobriban, Hamed Hassani, George J. Pappas, and Eric Wong.
+Jailbreaking black box large language models in twenty queries, 2023.
+DeepSeek-AI, Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu,
+Qihao Zhu, Shirong Ma, Peiyi Wang, Xiao Bi, Xiaokang Zhang, Xingkai Yu, Yu Wu, Z. F. Wu,
+Zhibin Gou, Zhihong Shao, Zhuoshu Li, Ziyi Gao, Aixin Liu, Bing Xue, Bingxuan Wang, Bochao
+Wu, Bei Feng, Chengda Lu, Chenggang Zhao, Chengqi Deng, Chenyu Zhang, Chong Ruan,
+Damai Dai, Deli Chen, Dongjie Ji, Erhang Li, Fangyun Lin, Fucong Dai, Fuli Luo, Guangbo Hao,
+Guanting Chen, Guowei Li, H. Zhang, Han Bao, Hanwei Xu, Haocheng Wang, Honghui Ding,
+Huajian Xin, Huazuo Gao, Hui Qu, Hui Li, Jianzhong Guo, Jiashi Li, Jiawei Wang, Jingchang
+7
+
+
+----- [page 8] -----
+Pre-print
+Chen, Jingyang Yuan, Junjie Qiu, Junlong Li, J. L. Cai, Jiaqi Ni, Jian Liang, Jin Chen, Kai Dong,
+Kai Hu, Kaige Gao, Kang Guan, Kexin Huang, Kuai Yu, Lean Wang, Lecong Zhang, Liang Zhao,
+Litong Wang, Liyue Zhang, Lei Xu, Leyi Xia, Mingchuan Zhang, Minghua Zhang, Minghui Tang,
+Meng Li, Miaojun Wang, Mingming Li, Ning Tian, Panpan Huang, Peng Zhang, Qiancheng Wang,
+Qinyu Chen, Qiushi Du, Ruiqi Ge, Ruisong Zhang, Ruizhe Pan, Runji Wang, R. J. Chen, R. L.
+Jin, Ruyi Chen, Shanghao Lu, Shangyan Zhou, Shanhuang Chen, Shengfeng Ye, Shiyu Wang,
+Shuiping Yu, Shunfeng Zhou, Shuting Pan, S. S. Li, Shuang Zhou, Shaoqing Wu, Shengfeng
+Ye, Tao Yun, Tian Pei, Tianyu Sun, T. Wang, Wangding Zeng, Wanjia Zhao, Wen Liu, Wenfeng
+Liang, Wenjun Gao, Wenqin Yu, Wentao Zhang, W. L. Xiao, Wei An, Xiaodong Liu, Xiaohan
+Wang, Xiaokang Chen, Xiaotao Nie, Xin Cheng, Xin Liu, Xin Xie, Xingchao Liu, Xinyu Yang,
+Xinyuan Li, Xuecheng Su, Xuheng Lin, X. Q. Li, Xiangyue Jin, Xiaojin Shen, Xiaosha Chen,
+Xiaowen Sun, Xiaoxiang Wang, Xinnan Song, Xinyi Zhou, Xianzu Wang, Xinxia Shan, Y. K. Li,
+Y. Q. Wang, Y. X. Wei, Yang Zhang, Yanhong Xu, Yao Li, Yao Zhao, Yaofeng Sun, Yaohui Wang,
+Yi Yu, Yichao Zhang, Yifan Shi, Yiliang Xiong, Ying He, Yishi Piao, Yisong Wang, Yixuan Tan,
+Yiyang Ma, Yiyuan Liu, Yongqiang Guo, Yuan Ou, Yuduan Wang, Yue Gong, Yuheng Zou, Yujia
+He, Yunfan Xiong, Yuxiang Luo, Yuxiang You, Yuxuan Liu, Yuyang Zhou, Y. X. Zhu, Yanhong
+Xu, Yanping Huang, Yaohui Li, Yi Zheng, Yuchen Zhu, Yunxian Ma, Ying Tang, Yukun Zha,
+Yuting Yan, Z. Z. Ren, Zehui Ren, Zhangli Sha, Zhe Fu, Zhean Xu, Zhenda Xie, Zhengyan Zhang,
+Zhewen Hao, Zhicheng Ma, Zhigang Yan, Zhiyu Wu, Zihui Gu, Zijia Zhu, Zijun Liu, Zilin Li,
+Ziwei Xie, Ziyang Song, Zizheng Pan, Zhen Huang, Zhipeng Xu, Zhongyu Zhang, and Zhen
+Zhang. Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning, 2025.
+URL https://arxiv.org/abs/2501.12948.
+Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha
+Letman, Akhil Mathur, Alan Schelten, Amy Yang, Angela Fan, Anirudh Goyal, Anthony Hartshorn,
+Aobo Yang, Archi Mitra, Archie Sravankumar, Artem Korenev, Arthur Hinsvark, Arun Rao, Aston
+Zhang, Aurelien Rodriguez, Austen Gregerson, Ava Spataru, Baptiste Roziere, Bethany Biron,
+Binh Tang, Bobbie Chern, Charlotte Caucheteux, Chaya Nayak, Chloe Bi, Chris Marra, Chris
+McConnell, Christian Keller, Christophe Touret, Chunyang Wu, Corinne Wong, Cristian Canton
+Ferrer, Cyrus Nikolaidis, Damien Allonsius, Daniel Song, Danielle Pintz, Danny Livshits, David
+Esiobu, Dhruv Choudhary, Dhruv Mahajan, Diego Garcia-Olano, Diego Perino, Dieuwke Hupkes,
+Egor Lakomkin, Ehab AlBadawy, Elina Lobanova, Emily Dinan, Eric Michael Smith, Filip
+Radenovic, Frank Zhang, Gabriel Synnaeve, Gabrielle Lee, Georgia Lewis Anderson, Graeme
+Nail, Gregoire Mialon, Guan Pang, Guillem Cucurell, Hailey Nguyen, Hannah Korevaar, Hu Xu,
+Hugo Touvron, Iliyan Zarov, Imanol Arrieta Ibarra, Isabel Kloumann, Ishan Misra, Ivan Evtimov,
+Jade Copet, Jaewon Lee, Jan Geffert, Jana Vranes, Jason Park, Jay Mahadeokar, Jeet Shah,
+Jelmer van der Linde, Jennifer Billock, Jenny Hong, Jenya Lee, Jeremy Fu, Jianfeng Chi, Jianyu
+Huang, Jiawen Liu, Jie Wang, Jiecao Yu, Joanna Bitton, Joe Spisak, Jongsoo Park, Joseph
+Rocca, Joshua Johnstun, Joshua Saxe, Junteng Jia, Kalyan Vasuden Alwala, Kartikeya Upasani,
+Kate Plawiak, Ke Li, Kenneth Heafield, Kevin Stone, Khalid El-Arini, Krithika Iyer, Kshitiz
+Malik, Kuenley Chiu, Kunal Bhalla, Lauren Rantala-Yeary, Laurens van der Maaten, Lawrence
+Chen, Liang Tan, Liz Jenkins, Louis Martin, Lovish Madaan, Lubo Malo, Lukas Blecher, Lukas
+Landzaat, Luke de Oliveira, Madeline Muzzi, Mahesh Pasupuleti, Mannat Singh, Manohar Paluri,
+Marcin Kardas, Mathew Oldham, Mathieu Rita, Maya Pavlova, Melanie Kambadur, Mike Lewis,
+Min Si, Mitesh Kumar Singh, Mona Hassan, Naman Goyal, Narjes Torabi, Nikolay Bashlykov,
+Nikolay Bogoychev, Niladri Chatterji, Olivier Duchenne, Onur Çelebi, Patrick Alrassy, Pengchuan
+Zhang, Pengwei Li, Petar Vasic, Peter Weng, Prajjwal Bhargava, Pratik Dubal, Praveen Krishnan,
+Punit Singh Koura, Puxin Xu, Qing He, Qingxiao Dong, Ragavan Srinivasan, Raj Ganapathy,
+Ramon Calderer, Ricardo Silveira Cabral, Robert Stojnic, Roberta Raileanu, Rohit Girdhar, Rohit
+Patel, Romain Sauvestre, Ronnie Polidoro, Roshan Sumbaly, Ross Taylor, Ruan Silva, Rui Hou,
+Rui Wang, Saghar Hosseini, Sahana Chennabasappa, Sanjay Singh, Sean Bell, Seohyun Sonia
+Kim, Sergey Edunov, Shaoliang Nie, Sharan Narang, Sharath Raparthy, Sheng Shen, Shengye Wan,
+Shruti Bhosale, Shun Zhang, Simon Vandenhende, Soumya Batra, Spencer Whitman, Sten Sootla,
+Stephane Collot, Suchin Gururangan, Sydney Borodinsky, Tamar Herman, Tara Fowler, Tarek
+Sheasha, Thomas Georgiou, Thomas Scialom, Tobias Speckbacher, Todor Mihaylov, Tong Xiao,
+Ujjwal Karn, Vedanuj Goswami, Vibhor Gupta, Vignesh Ramanathan, Viktor Kerkez, Vincent
+Gonguet, Virginie Do, Vish Vogeti, Vladan Petrovic, Weiwei Chu, Wenhan Xiong, Wenyin Fu,
+Whitney Meers, Xavier Martinet, Xiaodong Wang, Xiaoqing Ellen Tan, Xinfeng Xie, Xuchao Jia,
+Xuewei Wang, Yaelle Goldschlag, Yashesh Gaur, Yasmine Babaei, Yi Wen, Yiwen Song, Yuchen
+8
+
+
+----- [page 9] -----
+Pre-print
+Zhang, Yue Li, Yuning Mao, Zacharie Delpierre Coudert, Zheng Yan, Zhengxing Chen, Zoe
+Papakipos, Aaditya Singh, Aaron Grattafiori, Abha Jain, Adam Kelsey, Adam Shajnfeld, Adithya
+Gangidi, Adolfo Victoria, Ahuva Goldstand, Ajay Menon, Ajay Sharma, Alex Boesenberg, Alex
+Vaughan, Alexei Baevski, Allie Feinstein, Amanda Kallet, Amit Sangani, Anam Yunus, Andrei
+Lupu, Andres Alvarado, Andrew Caples, Andrew Gu, Andrew Ho, Andrew Poulton, Andrew
+Ryan, Ankit Ramchandani, Annie Franco, Aparajita Saraf, Arkabandhu Chowdhury, Ashley
+Gabriel, Ashwin Bharambe, Assaf Eisenman, Azadeh Yazdan, Beau James, Ben Maurer, Benjamin
+Leonhardi, Bernie Huang, Beth Loyd, Beto De Paola, Bhargavi Paranjape, Bing Liu, Bo Wu,
+Boyu Ni, Braden Hancock, Bram Wasti, Brandon Spence, Brani Stojkovic, Brian Gamido, Britt
+Montalvo, Carl Parker, Carly Burton, Catalina Mejia, Changhan Wang, Changkyu Kim, Chao
+Zhou, Chester Hu, Ching-Hsiang Chu, Chris Cai, Chris Tindal, Christoph Feichtenhofer, Damon
+Civin, Dana Beaty, Daniel Kreymer, Daniel Li, Danny Wyatt, David Adkins, David Xu, Davide
+Testuggine, Delia David, Devi Parikh, Diana Liskovich, Didem Foss, Dingkang Wang, Duc Le,
+Dustin Holland, Edward Dowling, Eissa Jamil, Elaine Montgomery, Eleonora Presani, Emily
+Hahn, Emily Wood, Erik Brinkman, Esteban Arcaute, Evan Dunbar, Evan Smothers, Fei Sun, Felix
+Kreuk, Feng Tian, Firat Ozgenel, Francesco Caggioni, Francisco Guzmán, Frank Kanayet, Frank
+Seide, Gabriela Medina Florez, Gabriella Schwarz, Gada Badeer, Georgia Swee, Gil Halpern,
+Govind Thattai, Grant Herman, Grigory Sizov, Guangyi, Zhang, Guna Lakshminarayanan, Hamid
+Shojanazeri, Han Zou, Hannah Wang, Hanwen Zha, Haroun Habeeb, Harrison Rudolph, Helen
+Suk, Henry Aspegren, Hunter Goldman, Ibrahim Damlaj, Igor Molybog, Igor Tufanov, Irina-
+Elena Veliche, Itai Gat, Jake Weissman, James Geboski, James Kohli, Japhet Asher, Jean-Baptiste
+Gaya, Jeff Marcus, Jeff Tang, Jennifer Chan, Jenny Zhen, Jeremy Reizenstein, Jeremy Teboul,
+Jessica Zhong, Jian Jin, Jingyi Yang, Joe Cummings, Jon Carvill, Jon Shepard, Jonathan McPhie,
+Jonathan Torres, Josh Ginsburg, Junjie Wang, Kai Wu, Kam Hou U, Karan Saxena, Karthik
+Prasad, Kartikay Khandelwal, Katayoun Zand, Kathy Matosich, Kaushik Veeraraghavan, Kelly
+Michelena, Keqian Li, Kun Huang, Kunal Chawla, Kushal Lakhotia, Kyle Huang, Lailin Chen,
+Lakshya Garg, Lavender A, Leandro Silva, Lee Bell, Lei Zhang, Liangpeng Guo, Licheng Yu,
+Liron Moshkovich, Luca Wehrstedt, Madian Khabsa, Manav Avalani, Manish Bhatt, Maria
+Tsimpoukelli, Martynas Mankus, Matan Hasson, Matthew Lennie, Matthias Reso, Maxim Groshev,
+Maxim Naumov, Maya Lathi, Meghan Keneally, Michael L. Seltzer, Michal Valko, Michelle
+Restrepo, Mihir Patel, Mik Vyatskov, Mikayel Samvelyan, Mike Clark, Mike Macey, Mike Wang,
+Miquel Jubert Hermoso, Mo Metanat, Mohammad Rastegari, Munish Bansal, Nandhini Santhanam,
+Natascha Parks, Natasha White, Navyata Bawa, Nayan Singhal, Nick Egebo, Nicolas Usunier,
+Nikolay Pavlovich Laptev, Ning Dong, Ning Zhang, Norman Cheng, Oleg Chernoguz, Olivia
+Hart, Omkar Salpekar, Ozlem Kalinli, Parkin Kent, Parth Parekh, Paul Saab, Pavan Balaji, Pedro
+Rittner, Philip Bontrager, Pierre Roux, Piotr Dollar, Polina Zvyagina, Prashant Ratanchandani,
+Pritish Yuvraj, Qian Liang, Rachad Alao, Rachel Rodriguez, Rafi Ayub, Raghotham Murthy,
+Raghu Nayani, Rahul Mitra, Raymond Li, Rebekkah Hogan, Robin Battey, Rocky Wang, Rohan
+Maheswari, Russ Howes, Ruty Rinott, Sai Jayesh Bondu, Samyak Datta, Sara Chugh, Sara
+Hunt, Sargun Dhillon, Sasha Sidorov, Satadru Pan, Saurabh Verma, Seiji Yamamoto, Sharadh
+Ramaswamy, Shaun Lindsay, Shaun Lindsay, Sheng Feng, Shenghao Lin, Shengxin Cindy Zha,
+Shiva Shankar, Shuqiang Zhang, Shuqiang Zhang, Sinong Wang, Sneha Agarwal, Soji Sajuyigbe,
+Soumith Chintala, Stephanie Max, Stephen Chen, Steve Kehoe, Steve Satterfield, Sudarshan
+Govindaprasad, Sumit Gupta, Sungmin Cho, Sunny Virk, Suraj Subramanian, Sy Choudhury,
+Sydney Goldman, Tal Remez, Tamar Glaser, Tamara Best, Thilo Kohler, Thomas Robinson, Tianhe
+Li, Tianjun Zhang, Tim Matthews, Timothy Chou, Tzook Shaked, Varun Vontimitta, Victoria Ajayi,
+Victoria Montanez, Vijai Mohan, Vinay Satish Kumar, Vishal Mangla, Vítor Albiero, Vlad Ionescu,
+Vlad Poenaru, Vlad Tiberiu Mihailescu, Vladimir Ivanov, Wei Li, Wenchen Wang, Wenwen Jiang,
+Wes Bouaziz, Will Constable, Xiaocheng Tang, Xiaofang Wang, Xiaojian Wu, Xiaolan Wang,
+Xide Xia, Xilun Wu, Xinbo Gao, Yanjun Chen, Ye Hu, Ye Jia, Ye Qi, Yenda Li, Yilin Zhang,
+Ying Zhang, Yossi Adi, Youngjin Nam, Yu, Wang, Yuchen Hao, Yundi Qian, Yuzi He, Zach Rait,
+Zachary DeVito, Zef Rosnbrick, Zhaoduo Wen, Zhenyu Yang, and Zhiwei Zhao. The llama 3 herd
+of models, 2024. URL https://arxiv.org/abs/2407.21783.
+Fengqing Jiang, Zhangchen Xu, Luyao Niu, Zhen Xiang, Bhaskar Ramasubramanian, Bo Li, and
+Radha Poovendran. Artprompt: Ascii art-based jailbreak attacks against aligned llms, 2024.
+Xiaogeng Liu, Nan Xu, Muhao Chen, and Chaowei Xiao. Autodan: Generating stealthy jailbreak
+prompts on aligned large language models. In The Twelfth International Conference on Learning
+Representations, 2024. URL https://openreview.net/forum?id=7Jwpw4qKkb.
+9
+
+
+----- [page 10] -----
+Pre-print
+Xiaogeng Liu, Peiran Li, G. Edward Suh, Yevgeniy Vorobeychik, Zhuoqing Mao, Somesh Jha, Patrick
+McDaniel, Huan Sun, Bo Li, and Chaowei Xiao. AutoDAN-turbo: A lifelong agent for strategy
+self-exploration to jailbreak LLMs. In The Thirteenth International Conference on Learning
+Representations, 2025. URL https://openreview.net/forum?id=bhK7U37VW8.
+Huijie Lv, Xiao Wang, Yuansen Zhang, Caishuang Huang, Shihan Dou, Junjie Ye, Tao Gui, Qi Zhang,
+and Xuanjing Huang. Codechameleon: Personalized encryption framework for jailbreaking large
+language models, 2024.
+Mantas Mazeika, Long Phan, Xuwang Yin, Andy Zou, Zifan Wang, Norman Mu, Elham Sakhaee,
+Nathaniel Li, Steven Basart, Bo Li, David Forsyth, and Dan Hendrycks. Harmbench: A standard-
+ized evaluation framework for automated red teaming and robust refusal. 2024.
+OpenAI. Introducing o3 and o4-mini. Web Page, April 2025. URL https://openai.com/
+index/introducing-o3-and-o4-mini/.
+Mahdi Sabbaghi, Paul Kassianik, George Pappas, Yaron Singer, Amin Karbasi, and Hamed Hassani.
+Adversarial reasoning at jailbreaking time, 2025. URL https://arxiv.org/abs/2502.
+01633.
+Xinyue Shen, Zeyuan Chen, Michael Backes, Yun Shen, and Yang Zhang. "do anything now":
+Characterizing and evaluating in-the-wild jailbreak prompts on large language models, 2023.
+Charlie Snell, Jaehoon Lee, Kelvin Xu, and Aviral Kumar. Scaling llm test-time compute optimally
+can be more effective than scaling model parameters, 2024. URL https://arxiv.org/abs/
+2408.03314.
+walkerspider. https://old.reddit.com/r/ChatGPT/comments/zlcyr9/dan_is_
+my_new_friend/, 2022. Accessed: 2023-09-28.
+Alexander Wei, Nika Haghtalab, and Jacob Steinhardt. Jailbroken: How does llm safety train-
+ing fail?
+In Advances in Neural Information Processing Systems, volume 36, pp. 80079–
+80110, 2023.
+URL https://proceedings.neurips.cc/paper_files/paper/
+2023/file/fd6613131889a4b656206c50a8bd7790-Paper-Conference.pdf.
+Youliang Yuan, Wenxiang Jiao, Wenxuan Wang, Jen tse Huang, Pinjia He, Shuming Shi, and
+Zhaopeng Tu. Gpt-4 is too smart to be safe: Stealthy chat with llms via cipher, 2024.
+Yi Zeng, Hongpeng Lin, Jingwen Zhang, Diyi Yang, Ruoxi Jia, and Weiyan Shi. How johnny can
+persuade llms to jailbreak them: Rethinking persuasion to challenge ai safety by humanizing llms,
+2024.
+Andy Zou, Zifan Wang, Nicholas Carlini, Milad Nasr, J. Zico Kolter, and Matt Fredrikson. Universal
+and transferable adversarial attacks on aligned language models, 2023.
+10

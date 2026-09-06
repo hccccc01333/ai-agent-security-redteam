@@ -1,0 +1,2059 @@
+
+
+----- [page 1] -----
+ToolFuzz - Automated Agent Tool Testing
+Ivan Milev 1 Mislav Balunovi´c 1 Maximilian Baader 1 Martin Vechev 1
+imilev@ethz.ch, {mislav.balunovic, mbaader, martin.vechev}@inf.ethz.ch
+Abstract
+Large Language Model (LLM) Agents leverage
+the advanced reasoning capabilities of LLMs in
+real-world applications. To interface with an en-
+vironment, these agents often rely on tools, such
+as web search or database APIs. As the agent pro-
+vides the LLM with tool documentation along the
+user query, the completeness and correctness of
+this documentation is critical. However, tool doc-
+umentation is often over-, under-, or ill-specified,
+impeding the agent’s accuracy. Standard software
+testing approaches struggle to identify these errors
+as they are expressed in natural language. Thus,
+despite its importance, there currently exists no au-
+tomated method to test the tool documentation for
+agents. To address this issue, we present TOOL-
+FUZZ, the first method for automated testing of
+tool documentations. TOOLFUZZ is designed to
+discover two types of errors: (1) user queries lead-
+ing to tool runtime errors and (2) user queries that
+lead to incorrect agent responses. TOOLFUZZ
+can generate a large and diverse set of natural in-
+puts, effectively finding tool description errors at
+a low false positive rate. Further, we present two
+straightforward prompt-engineering approaches.
+We evaluate all three tool testing approaches on 32
+common LangChain tools and 35 newly created
+custom tools and 2 novel benchmarks to further
+strengthen the assessment. We find that many
+publicly available tools suffer from underspeci-
+fication. Specifically, we show that TOOLFUZZ
+identifies 20x more erroneous inputs compared to
+the prompt-engineering approaches, making it a
+key component for building reliable AI agents.
+1. Introduction
+LLM agents and compound systems (Yao et al., 2023a; Za-
+haria et al., 2024) aim to combine the powerful reasoning
+1Department of Computer Science, ETH Zurich. Correspon-
+dence to: Ivan Milev <imilev@ethz.ch>.
+Preprint
+capabilities of LLMs with real-world interactions to solve
+complex tasks. An agent receives a natural language query
+from a user and performs a sequence of actions that inter-
+act with external tools, such as web search (Zhou et al.,
+2024), code execution (Yang et al., 2024a), or querying a
+database (Wang et al., 2024a), with the goal of solving the
+specified task. As such, effective interaction with these tools
+is critical for successful task completion.
+Reliability Problems of Agent Tools
+To facilitate tool us-
+age for agents, each tool is accompanied by documentation
+detailing its functionality and intended use, which can be
+provided to the agent LLM as part of the prompt. In practice,
+however, LLM agents often fail to use the available tools
+correctly (Sun et al., 2024; Yang et al., 2024b; Balunovic,
+2024) because their documentation assumes human-level
+understanding. Thus, it is often underspecified (leaving
+crucial details implicit), overspecified (focusing narrowly
+on a single use case despite broader applicability), or ill-
+specified (where the tool’s functionality is not aligned with
+its documentation). Although tools play a crucial role in
+agent systems (Yuan et al., 2024; Qu et al., 2024), automated
+methods for detecting such errors are lacking. Traditional
+fuzzing techniques, generating seemingly meaningless ran-
+dom strings, fall short for agent testing, as they cannot sim-
+ulate the expected natural language queries. For instance,
+when using the well-known fuzzing algorithm American
+Fuzzy Lop on an agent tool for several hours, it failed to
+find even a single example that realistically represents an
+LLM agent scenario.
+Testing Agent Tools with TOOLFUZZ
+To address this,
+we introduce TOOLFUZZ, a novel method for automatic
+end-to-end tool testing. TOOLFUZZ has two techniques to
+uncover specification errors: (1) by generating queries that
+lead to tool runtime errors, achieved by combining fuzzing
+techniques with LLM-based query generation, and (2) by
+generating queries that result in incorrect agent responses,
+using synonymous prompt generation and a series of cascad-
+ing consistency and correctness checks at various stages of
+the agent’s processing. Experimentally, we show that TOOL-
+FUZZ successfully identifies a large number of erroneous
+queries, aiding in the improvement of the tool and thus its
+utility to the agent.
+1
+arXiv:2503.04479v3 [cs.AI] 11 Mar 2025
+
+
+----- [page 2] -----
+ToolFuzz - Automated Agent Tool Testing
+Main Contributions:
+• A novel, end-to-end agent-centric method for finding
+errors in tools, called TOOLFUZZ.
+• A new benchmark suite that focuses on evaluating ac-
+curate tool utilization for file management and GitHub
+agents, emphasizing precise tool invocation rather than
+sophisticated reasoning and planning.
+• A thorough experimental evaluation of TOOLFUZZ
+across a wide variety of agent tools and tasks.
+2. Background and Related Work
+In this section, we provide the essential background and
+review the most relevant prior work.
+Language Models
+Throughout this work, we rely on
+generative Large Language Models (LLMs) for various
+tasks. Specifically, we use commercial instruction-tuned
+LLMs – GPT-4 (OpenAI et al., 2024), GPT-4o, GPT-4o-
+mini (OpenAI, 2024), which have shown impressive perfor-
+mance across various challenging benchmarks (e.g., HELM,
+MMLU-Pro (Liang et al., 2023; Wang et al., 2024b)). De-
+spite this, they remain susceptible to "hallucinations" that
+can undermine their trustworthiness (Lee et al., 2023; Man-
+akul et al., 2023; Mündler et al., 2024). To address this
+issue, numerous methods have emerged, employing vari-
+ous prompting techniques (Fluri et al., 2023; Wang et al.,
+2023a; Mündler et al., 2024). Additionally, LLMs are used
+as judges (Wei et al., 2023; Zheng et al., 2023) to improve
+accuracy. Furthermore, cross-checking multiple generations
+with assertive generations (Chen et al., 2022) can help bal-
+ance efficiency with more robust correctness verification.
+LLM Agents
+LLM agents enable LLMs to interact with
+external tools such as Web-APIs, databases, and code exe-
+cution environments. The LLM is responsible for reasoning,
+planning, and tool usage to continuously enrich its context,
+thereby improving the quality of the final response (Shinn
+et al., 2023; Wang et al., 2023b; Yao et al., 2023a). We
+define an agent system A as a tuple ⟨L, F⟩, where the lan-
+guage model L has access to a set of tools F ∋fi. As many
+tools are frequently wrappers around robust Web-APIs or
+other well-tested libraries, we focus mainly, but not only, on
+potential failures due to incomplete or erroneous documen-
+tation that would undermine the tools utility to the agent (Qu
+et al., 2024; Yuan et al., 2024).
+Agent Benchmarks and Tool Usage
+Recently, there has
+been growing interest in benchmarking the capabilities of
+LLM agents on across diverse tasks such as long-horizon
+planning (Liu et al., 2023), security analysis (Debenedetti
+et al., 2024; Naihin et al., 2023; Ruan et al., 2024), real-
+world web interactions (Deng et al., 2023a; Zhou et al.,
+2024; Yao et al., 2023b) and multimodal agents (Xie et al.,
+2024). Benchmarks such as Berkeley Function Calling
+Leaderboard (F. Yan et al.), ToolAlpaca (Tang et al., 2023),
+ToolBench (Xu et al., 2023), and MetaTool (Huang et al.,
+2024a), evaluate function-call accuracy. However, they pri-
+marily focus on the reasoning and planning aspects of the
+LLM rather than the correctness of the tools used and their
+documentation. While methods for enhancing tool docu-
+mentation (Qu et al., 2024; Yuan et al., 2024) recognize tools
+and their documentation as critical components, they do not
+provide a methodology to identify such insufficiencies. Our
+work addresses this gap by introducing TOOLFUZZ, along
+with two custom benchmarks, a GitHub and a File Man-
+agement benchmark, specifically focused on tool evaluation
+with an emphasis on correct tool utilization over sophisti-
+cated agent planning.
+Fuzz Testing
+In classical software engineering, fuzzing
+is a widely used technique to discover errors or vulnera-
+bilities in software by generating random or semi-random
+inputs (Wen, 2024; Zeller et al., 2024). White-box fuzzing
+leverages source code insights, black-box fuzzing treats the
+program as a black box, and gray-box testing blends both
+approaches. Recently, LLMs have been employed to en-
+hance fuzzing in creating more semantically meaningful
+tests (Huang et al., 2024b; Yang et al., 2024c; Deng et al.,
+2023b). However, both traditional and modern methods
+must be carefully managed, as a high number of false pos-
+itives can undermine the credibility of the testing process
+and waste resources like compute and time. While fully
+LLM-driven fuzzing faces challenges in cost, scope, and
+reliability (Jiang et al., 2024), combining fuzzing with ma-
+chine learning has proven effective for testing (He et al.,
+2019). Consequently, we adopt a hybrid approach: instead
+of producing purely random strings, which would likely
+be out of distribution for LLMs, we combine fuzzing and
+LLM-based prompt generation, using partial knowledge
+of the tool’s semantics to systematically probe agent-tool
+interactions.
+3. Overview
+We now provide an overview of TOOLFUZZ. First, we
+explain the types of documentation errors: under-, over-,
+and ill-specification as well as the different types of agent
+failures, specifically tool runtime and correctness errors.
+Then, we describe our techniques for finding user prompts,
+tailored to each type of agent failure.
+Documentation Errors
+Several errors can arise due to
+faulty documentation. In practice, recent work has shown
+that agents often call tools inaccurately. As these calls pri-
+2
+
+
+----- [page 3] -----
+ToolFuzz - Automated Agent Tool Testing
+Correctness
+Failure
+Detection
+Runtime
+Failure
+Detection
+Taint Fuzzer
+Tool
+LLM
+Prompt
+Generation
+Agent
+LLM
+Synonymous
+Prompt
+Generation
+LLM
+Prompt
+Template
+Generation
+I/O Consistency
+Checks
+LLM
+Correctness
+Evaluation
+Tool runtime error
+detection
+Erroneous
+prompts
+AND
+...
+...
+...
+...
+1
+1A
+2A
+1B
+2B
+2C
+2D
+1D
+2
+def
+def open_street_map_search
+open_street_map_search(query
+query):
+):
+  """
+"""
+ 
+ A tool to query a map, capapble
+A tool to query a map, capapble
+ 
+ of locating places by name and
+of locating places by name and
+ 
+ handling simple search queries 
+handling simple search queries 
+ 
+ like: 'query: libraries in SF'
+like: 'query: libraries in SF'
+ 
+ """
+"""
+  assert
+assert len
+len(query
+query) 
+) < 100
+100, 
+, ERROR_MSG
+ERROR_MSG
+  response
+response = request
+request(f"
+f"{URL
+URL}{
+}{query
+query}")
+  return
+return response
+response.json
+json()
+()
+Figure 1: Overview of the two error detection techniques of TOOLFUZZ, consisting of (1) a fuzzing based approach and
+(2) an invariance based approach utilizing consistency checks. Prompts are denoted by p or pj, tool calls by Ip or Ij, tool
+responses by Op or Oj and agent responses by a or aj.
+marily depend on the tools’ documentation, it can be held
+accountable for a large portion of agent failures (F. Yan
+et al.; Yang et al., 2024a; Yao et al., 2024; ScaleAI). First,
+documentation can be underspecified regarding a tool’s lim-
+itations, causing the LLM to use the tool in unsupported
+contexts, such as using arXiv to search for “Italian food”.
+Additionally, underspecification can restrict tool usage, i.e.
+the pubmed tool has additional features beyond searching for
+paper titles which are unspecified in the documentation (see
+more in §5.4). Second, documentation can be overspecified,
+artificially reducing the scope or the ways in which the tool
+can be used. Third, documentation can be illspecified, re-
+flecting a misalignment between a tool’s functionality and
+its described usage. In practice, under- or ill-specified ar-
+gument documentation can include incomplete or incorrect
+enumeration values, missing or outdated syntax details, or
+omitted relational constraints. These documentation errors
+often lead to tool misuse, highlighting the need for methods
+to detect these shortcomings.
+Agent Tool Failures
+Initial investigation reveals two dis-
+tinct manifestations of these documentation errors in agent
+tool failures: first, runtime failures, where invalid or mis-
+formatted inputs lead to runtime tool errors, and second,
+correctness failures, where the tool returns incorrect results
+for a given user query. These issues often arise from a
+mismatch between the tool documentation, written by de-
+velopers, and its interpretation by LLMs.
+3.1. TOOLFUZZ
+To address the two types of agent tool failures TOOL-
+FUZZ utilizes two custom techniques to detect errors: (1) a
+fuzzing inspired approach to detect runtime errors, and (2)
+an invariance-based approach to detect correctness errors.
+Both techniques of TOOLFUZZ are illustrated in Figure 1.
+In the following, we provide a detailed overview of these
+techniques using the open-street-map-search tool, speci-
+fied in Figure 2, as a running example. The tool processes
+free-form text queries to retrieve location information.
+Runtime Failure Detection
+The runtime failure detection
+technique combines fuzzing with LLM-based generation
+to produce realistic testing prompts (see Figure 1.1). For
+fuzzing, we use our TaintFuzzer (Figure 1.1A) to stress test
+the tool, collecting tool inputs that lead to runtime errors.
+In the case of the open-street-map-search tool, which
+has a length restriction on the query parameter, the fuzzer
+identifies a particularly long query, "PSC 3315, Box 8692
+APO AE 21800 Unit 2602 Box 5634 DPO AE 92418...",
+causing a runtime error. This failing input is then passed
+to an LLM along with the tool documentation to generate
+a user query incorporating it. For our running example,
+the generated user query is “(5) Locate places at PSC...”
+(Figure 2.1B).
+Once the user query is generated, it is passed to the agent
+LLM (Figure 1.1B), which plans a tool invocation as show
+in Figure 2.1invoc.. The tool execution is then monitored for
+runtime errors. In our example, the tool raises "(5) <class
+’Assertion Error’>Query is too long..." (Figure 2.1outputs).
+Whenever such an error occurs, the corresponding query is
+collected as an erroneous prompt (Figure 1.1D).
+Correctness Failure Detection
+To detect correctness fail-
+ures, TOOLFUZZ generates synonymous prompts and ap-
+plies cascading checks throughout the agent process, includ-
+ing checks for tool argument consistency, tool output con-
+sistency, and an LLM correctness evaluation (Figure 1.2).
+First, TOOLFUZZ generates a template prompt, which is
+then populated with synonymous mask infills (Figure 1.2
+A and B). For example, “Find [A] near [B].” can be instan-
+3
+
+
+----- [page 4] -----
+ToolFuzz - Automated Agent Tool Testing
+Tool function declaration: def open_street_map_search(query: str) →str:
+Tool
+Tool documentation: Tool to query a map. This tool can locate places by name and simple queries such as: libraries in San Francisco. The idea of
+the tool is to locate places like coffee shops, offices, etc.
+Fuzzing based prompt generation:
+(1) Locate places at PSC 3315, Box 8692 APO AE 21800 Unit 2602 Box 5634 DPO AE 92418 3375 Hoover Well East Andrew, ID 52728
+5868 Crosby Crescent Gregoryview, AZ 14709 569 Paul Ports Apt. 406 New Saraside, TX 94798 USNS Diaz FPO AE 87563 PSC 9514,
+Box 8465 APO AA 91885 66299 Sullivan Village West Justinchester, WY 76520 7738 Leon Underpass Apt. 148 Clarencebury, TX 41188
+00379 Stanley Roads Lake Heather, NM 52884
+(2) Find the nearest hospital in the Andromeda Galaxy
+1B
+Synonymous prompt generation:
+(3) Find grocery store near San Jose.
+(4) Find supermarket near SJ USA.
+(5) Find food market near San Jose California.
+(6) Find grocery market near SJ CA.
+2B
+Tool invocations:
+(1) open-street-map-search("query:PSC 3315, Box 8692 APO...")
+(2) open-street-map-search("query:hospital in the Andromeda Galaxy")
+1invoc.
+2invoc.
+(3) open-street-map-search("query:grocery store near San Jose")
+(4) open-street-map-search("query:supermarket near San Jose, USA")
+(5) open-street-map-search("query:food market near San Jose California")
+(6) open-street-map-search("query:grocery market near San Jose, CA")
+Tool outputs:
+(1) <class ’AssertionError’ >Query is too long...
+(2) The top 0 results for the query are: .
+1outputs
+2outputs
+(3) The top 0 results for the query are: .
+(4) The top 10 results for the query are:
+Safe-
+way...Whole Foods Market...
+(5) The top 0 results for the query are: .
+(6) The top 0 results for the query are: .
+LLM Oracle expectation:
+Grocery stores near San Jose include: Safeway, Trader Joe’s, Whole Foods Market, and Sprouts Farmers Market.
+2D
+Agent answers:
+(1) <class ’AssertionError’>Query is too long...
+(2) The top 0 results for the query are: .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+(3) It seems that I couldn’t find any grocery stores near San Jose. Would you like me to try a different query or look for something else?
+(4) Here are some supermarkets near San Jose, USA: 1. Dai Thanh Supermarket... 2. Grocery Outlet... 5. Safeway... 10. Whole Foods Market
+(5) It seems that I couldn’t find any food markets near San Jose, California. Would you like me to search for something else, such as
+grocery stores or farmers’ markets?
+(6) It seems that I couldn’t find any grocery markets near San Jose, CA. Would you like me to try a different search or provide information
+on something else?
+Agent
+Figure 2: Input/Output overview for open_street_map_search tool evaluated with TOOLFUZZ. Note that the numbering
+corresponds to the numbering of the two approaches in Figure 1.
+tiated with strings like “Find grocery store near San Jose.”
+and “Find supermarket near SJ USA” (Figure 2.2B).
+Once these n user queries p1, . . . , pn are generated, they are
+passed to the agent LLM (Figure 1.2B), which again plans
+and executes tool invocations. Here, TOOLFUZZ checks
+the inputs I1, . . . , In and outputs O1, . . . , On separately for
+consistency (Figure 1.2C). For our running example, these
+consistency checks fail as not only the tool inputs Ij gener-
+ated by the agent LLM are not equal, but the tool outputs Oj
+also do not match each other. Specifically, in Figure 2.2invoc.,
+we see that the input arguments do not coincide. Similarly,
+in Figure 2.2outputs, we see that the responses are also not
+equal.
+However, such checks alone may miss consistent outputs,
+which are obviously wrong. To catch these, TOOLFUZZ
+uses an LLM correctness evaluator (an LLM Oracle) to
+compare the agent’s output against a generated expectation
+(Figure 1.2D). In our example, the LLM Oracle expects
+“Grocery stores near San Jose include: Safeway...”", but
+the agent instead replies “It seems that I couldn’t find any
+grocery stores near San Jose...” (Figure 2.Agent). Since
+this response contradicts the expected answer (Figure 2.2D),
+TOOLFUZZ classifies it as incorrect.
+TOOLFUZZ utilizes all three checks to reduce the number
+of false positives. The first two metrics expose description
+insufficiencies, while the LLM Oracle reduces the set of
+positives further, to a set of positives with mismatched ex-
+pectations. The resulting set will be added to the erroneous
+prompts.
+4. Methodology
+As discussed in §3, we identify two main types of tool
+failures: runtime tool failures and correctness failures. We
+now explain the two techniques to detect these in detail.
+4
+
+
+----- [page 5] -----
+ToolFuzz - Automated Agent Tool Testing
+@tool('open-street-map-search')
+def open_street_map_search(query: str) -> str:
+"""
+A tool to query a map, capable of locating places by name and handling simple queries.
+The queries must start with 'query: ', an example is 'query: libraries in San Francisco.'
+The purpose of the tool is to locate places like coffee shops, offices, etc.
+"""
+assert len(query) < 100, 'Query is too long. Query must be less than 100 characters'
+search_query = query.split('query: ')[1]
+if ’supermarket’ in keywords or 'coffee shop' in keywords or 'library' in keywords or 'office' in keywords:
+response = request(f"{OPEN_STREET_BUILDING_SEARCH}{query}&polygon_geojson=1&format=jsonv2")
+else:
+response = request(f"{OPEN_STREET_NATURE_SEARCH}{query}&format=jsonv2")
+response_json = response.json()
+return response_json
+Figure 3: Example Implementation of the open-street-map-search tool.
+4.1. Runtime tool failures
+Runtime tool failures of the agent occur when inputs break
+the tool under test, ftested. To generate such inputs, we em-
+ploy a two-stage process: first, a Taint Fuzzer generates
+inputs to trigger runtime errors for the tool in isolation (Fig-
+ure 1.1). Then, provided that the inputs pass a sanity check
+against the documentation, an LLM is used to create natural
+user queries for evaluation on A (Figure 1.1B). As the Taint
+Fuzzer operates independently of the tool documentation,
+this second step with it is crucial to minimize false positives.
+Taint Fuzzing
+As most tools have strong priors on the
+data such as syntax or semantic priors, it is essential to cap-
+ture those and ensure that the fuzzer samples accordingly.
+An example of a syntax prior is given in Figure 3, where
+the input query is required to start with the text “query:
+”. A semantic prior could be formatted like an addresses.
+To generate inputs satisfying a specific syntax, we analyze
+the tool using taint object analysis and collect syntax re-
+quirements like specific JSON or CSV formats, or string
+splitting operations. This is then used by our custom genera-
+tor, which generates syntax-conforming arguments based on
+their types and syntactic patterns. To generate inputs with a
+semantic prior, we leverage resources such as dictionaries
+or LMs. If the generated arguments lead to runtime tool
+errors, they are collected for future prompt generation. For
+the open-street-map-search tool, the fuzzer collects all
+generated arguments exceeding 100 characters (Figure 3).
+Prompt Generation
+While the fuzzer generates valid
+words, numbers, etc., these arguments may still not satisfy
+the requirements specified in the tool documentation. For
+example, open-street-map-search is designed and speci-
+fied for finding locations, not scientific papers. To mitigate
+this issue, we conduct a sanity check against the documenta-
+tion by instructing the agent’s LLM to invoke the tool with
+the previously found arguments, given the documentation.
+Refusal of the LLM indicates that the arguments do not
+satisfy the documented requirements. If the sanity check
+passes, a natural language prompt for A is generated via an
+LLM, based on the tool documentation and the arguments
+that break the tool. Finally, we filter for the user queries that
+lead to runtime tool errors when passed to the agent A.
+4.2. Correctness failure detection
+Unlike runtime failures, the primary challenge in detect-
+ing correctness failures is assessing the outputs of ftested
+in the absence of ground-truth data. We address this by
+introducing prompt sets P = {p1, p2, . . . , pn}, consisting
+of synonymous prompts. The idea is that synonymous user
+queries will lead to synonymous agent responses given the
+correct tool documentation. Thus, a violation of this indi-
+cates faulty tool documentation. To check this, we employ
+a cascade of checks: we check whether synonymous user
+queries p1, . . . , pn are (i) mapped to equivalent tool calls
+I1, . . . , In, and (ii) equivalent tool outputs O1, . . . , On and
+(iii) check if the output appears plausible to an LLM. We
+find that if all these checks fail, we have sufficient evidence
+to treat this prompt as erroneous.
+Prompt Generation
+Generating the synonymous prompt
+set P involves multiple steps. First, an LLM (LMprgen)
+creates a template question using the tool documentation,
+e.g., “Find [venue] in [city]” (Figure 3). Utilizing the tool
+documentation, an LLM then generates synonymous infills
+for the masked words, forming P. For our example, infills
+for “[venue]” can include [‘libraries’, ‘public libraries’,
+‘city libraries’], while infills for the mask “[city]” can be
+[“SF”, “San Francisco”, “San Francisco CA”]. Multiple
+prompts and infills are generated per tool.
+5
+
+
+----- [page 6] -----
+ToolFuzz - Automated Agent Tool Testing
+Correctness Detection
+Next, TOOLFUZZ invokes the
+agent A on P and collects the tool inputs Ij and outputs
+Oj. The key insight for correctness detection is that synony-
+mous prompts result in consistent agent responses, given
+the correct tool documentation. Thus, inconsistent tool in-
+vocations are likely to lead to inconsistent tool responses,
+which, in turn, will likely lead to erroneous agent responses.
+Input Evaluation
+Specifically, we check the input con-
+sistency of a prompt set P by verifying if the values of the
+argument across all function inputs I1, . . . , In are equal to
+ensure identical function calls. An input consistency check
+failure indicates underspecification of the tool arguments.
+Output Evaluation
+Analogously, we check the output
+consistency of P by comparing the responses O1, . . . , On,
+again via exact matching. The output consistency serves as
+a proxy for comparing the inherently challenging natural
+language agent responses.
+LLM Oracle
+If the agent is consistently wrong, the input
+output checks fail to identify the error, leading to false
+negatives. Similarly, for non-deterministic tools, even if all
+inputs are equal, the outputs might not be, resulting in false
+positives. To combat both and enhance TOOLFUZZ, we add
+a third check for plausibility. While each consistency check
+on its own is insufficient, when combined they reduce the
+FDR to an acceptable level: In the absence of ground truth,
+we ask an LLM to answer the queries P (Mündler et al.,
+2024), followed by majority voting. The majority answer
+is then compared to the agent responses by an LLM Oracle,
+rating their similarity on a scale from 1 to 10, with 5 as the
+threshold (Zheng et al., 2023). We note that, even though
+some tools require private API access, the expected answer
+from the majority vote is most often sufficient. We consider
+{pj}j to be faulty if all checks fail simultaneously.
+5. Experimental Evaluation
+In this section, demonstrating TOOLFUZZ’s effectiveness in
+error detection via evaluation on both synthetic and public
+tools. We also introduce two new agent benchmarks: one
+for file management tasks and another for GitHub tasks.
+5.1. Experimental setup
+We now describe the experimental setup we used, including
+the agent, tools, metrics, and baselines.
+Agent
+Our method is applicable to any agentic paradigm.
+For evaluation, we focus on the widely adopted ReACT
+agent (Yao et al., 2023a). In our experiments, we employ
+OpenAI’s GPT-4o and GPT-4o-mini models (OpenAI et al.,
+2024), which are widely used in both research and practice.
+We conduct our experiments using LangChain (Chase, 2022)
+due to the large variety of community tools.
+Tools
+We curated a dataset of 32 LangChain Community
+tools that do not require API keys, from a total of 96 tools,
+to facilitate reproducibility and adoption of TOOLFUZZ.
+Additionally, we manually developed 35 tools: 33 for run-
+time failure detection and 2 for correctness failure detection.
+More details are available in App. G.
+Metrics
+To assess TOOLFUZZ’s effectiveness, we manu-
+ally inspect all positives (user queries generated and detected
+by TOOLFUZZ) to obtain and report the number of false pos-
+itives and the False Discovery Rate (FDR). For the new File
+Management and GitHub agents benchmark, performance is
+assessed via pass rate, which is the number of successfully
+completed tasks over the total number of tasks.
+Prompt Engineering Approaches
+In the absence of prior
+research on testing agent tools, we introduce two prompt
+engineering approaches based on GPT-4o (OpenAI et al.,
+2024), each assessing tool runtime and correctness errors.
+The first method called TOOLFUZZ gray-box testing ap-
+proaches tool testing as a gray-box scenario, where an LLM
+generates test prompts based solely on the tool’s name and
+documentation. For runtime tool failure detection, the LLM
+creates prompts aimed at triggering runtime tool errors,
+which are then tested on the agent. For correctness failure
+detection, the LLM generates prompts to elicit incorrect re-
+sponses from the agent, and a second LLM, the LLM judge,
+evaluates the agent’s answers without additional context,
+relying only on the prompt and the agent response. The
+second method, called TOOLFUZZ white-box testing mir-
+rors the gray-box approach but additionally incorporates the
+tool’s source code during prompt generation.
+Benchmarks
+Existing benchmarks overlook the impor-
+tance of tools and instead focus primarily on agent reason-
+ing and planning. As TOOLFUZZ is the first work on agent
+tool testing, we introduce two new benchmarks tailored
+for tool evaluation. Specifically, these benchmarks are de-
+signed around tasks that require precise tool usage based
+on its documentation, rather than complex planning. The
+first benchmark, File Management Benchmark, includes
+32 folder structures and 193 tasks, accompanied by scripts
+for setup and validation. The second, GitHub Benchmark,
+features 54 tasks within a single repository, divided into six
+categories, with built-in logic for task validation and envi-
+ronment reset. Both benchmarks are divided into training
+and test sets. The training set provides additional context
+for TOOLFUZZ, while the test set remains unseen by both
+TOOLFUZZ and the automatic fix pipeline.
+6
+
+
+----- [page 7] -----
+ToolFuzz - Automated Agent Tool Testing
+Table 1: A comparison of runtime failure detection methods showing the number of vulnerable tools identified for specific
+errors. Each row represents a distinct error type, and each column corresponds to a different detection method. TF GB is
+TOOLFUZZ Gray-Box, TF WB is TOOLFUZZ White-Box, TF is TOOLFUZZ, and TF Comb. is TOOLFUZZ Combined.
+TF GB
+TF WB
+TF
+TF Comb.
+TF GB
+TF WB
+TF
+TF Comb.
+Synthetic tools
+ValueError: output parsing
+1
+1
+0
+1
+LangChain tools
+9
+10
+3
+11
+Input grammar type error
+4
+2
+2
+6
+1
+0
+0
+1
+Input grammar syntax error
+4
+11
+13
+15
+1
+2
+1
+2
+HTTP error
+2
+1
+5
+5
+5
+4
+8
+10
+Tool specific errors
+0
+2
+2
+3
+0
+1
+2
+5
+Tool’s output is too long
+0
+1
+0
+1
+0
+0
+1
+1
+Table 2: Comparison of methodologies for detecting erro-
+neous prompts and unique runtime tool failures as well as
+the number of tested prompts.
+Testing
+Erroneous
+Tested
+Unique
+method
+prompts
+prompts
+errors
+TOOLFUZZ GB
+11326
+28824
+38
+TOOLFUZZ WB
+6939
+20440
+42
+TOOLFUZZ
+999
+3297
+41
+5.2. Evaluation on 32 LangChain Tools
+We now present the evaluation results for TOOLFUZZ in
+detecting both runtime and correctness failures, along with
+its performance on the newly introduced benchmarks.
+Evaluating Runtime Failure Detection
+Runtime failure
+detection is performed on both our handcrafted synthetic
+tools dataset and the LangChain community tools (Chase,
+2022). Note that runtime failure detection does not suf-
+fer from false positives. The results are presented in Ta-
+ble 1. While TOOLFUZZ white-box performs well on syn-
+thetic tools, as these often have explicit input validation
+in their source code provided to the LLM, TOOLFUZZ ex-
+cels in identifying a more diverse set of errors, especially
+in tools using external APIs. Furthermore, TOOLFUZZ is
+significantly more effective, requiring only a fraction (1/6
+and 1/9) of the prompts used by the other approaches (Ta-
+ble 2), due to TOOLFUZZ’s efficient fuzzing process using
+the Faker vocabulary library (Faraglia, 2025). TOOLFUZZ
+also avoids generating degenerate prompts, offering better
+diversity in useful prompts (see Figure 18 in App. E.4).
+Evaluating Correctness Detection
+As discussed in §4.2,
+it is crucial to minimize false positives. The key metric is
+the False Discovery Rate, FDR =
+FP
+FP+TP, where FP denotes
+False Positives (mistakenly identified erroneous prompts),
+and TP represents True Positives.
+Table 3: Table comparing the number of erroneous prompts
+(for correctness detection) detected by different methods
+next to the total number of used prompts, as well as the
+number of true positives (TP) the number of false positives
+(FP) and the False Discovery Rate (FDR).
+Testing
+Erroneous
+Total
+TP
+FP
+FDR
+method
+prompts
+prompts
+TF GB
+124
+7308
+11
+113
+92%
+TF WB
+178
+9701
+15
+163
+91%
+TF
+1156
+2521
+622
+534
+46%
+To distinguish false positives from true positives, we in-
+spect them manually: We manually check if the agent’s
+response matches the query. The results of this inspection
+are presented in Table 3. It confirms that TOOLFUZZ re-
+duces FDR by 45% compared to our prompt-based methods,
+while increasing the True Positives by 20×. TOOLFUZZ
+demonstrates superior detection capabilities due to:
+1. A more diverse in distribution prompt generation, com-
+pared to degenerate prompts from prompt engineering
+methods, especially in TOOLFUZZ white-box testing
+(Figure 18 in App. E.4).
+2. An assessment of input-output consistency as a strong
+indicator of potential correctness failures (§4.2).
+3. The LLM Oracle’s access to the expected answer ob-
+tained via majority voting, while baseline LLMs lack
+context and may rely on outdated information (§4.2).
+This enables TOOLFUZZ to achieve a significantly lower
+FDR while also being more sample efficient.
+5.3. Evaluation on Two Custom Benchmarks
+We evaluated TOOLFUZZ’s effectiveness in failure detec-
+tion using ReAct agents equipped with the tool or toolkit
+under test on our new Github and File management bench-
+marks. For the File management benchmark, we test the
+7
+
+
+----- [page 8] -----
+ToolFuzz - Automated Agent Tool Testing
+Table 4: File Management Benchmark: Comparison of the
+passing test rate between different fixing methods for the
+terminal tool and the File Management Toolkit (FMT).
+Tool Description: TD, Tool source code: TSrc.
+Tool
+Original
+GPT-4o
+Autofix
+TD
+TD+TSrc
+Terminal
+21.53%
+25.38%
+19.7%
+30.42%
+FMT
+22.22%
+30.06%
+31.9%
+33.35%
+Table 5: GitHub toolkit: Comparison of the passing test
+rate between different fixing methods for the GitHub toolkit
+(GHT). Tool Description: TD.
+Tool
+Original
+GPT-4o + TD
+Autofix
+GHT
+62.6%
+64.5%
+68.75%
+terminal tool and the File Management Toolkit. For the
+github benchmark, we use the GitHub toolkit. The agent
+is powered by GPT-4o-mini.
+Automatic Documentation Fixing
+Initially, we evaluate
+the agent’s performance on the default tool documentation.
+We then demonstrate the utility of the erroneous prompts
+identified by TOOLFUZZ by also evaluating with LLM im-
+proved documentation. To achieve this, the LLM receives
+both the erroneous examples and the original tool documen-
+tation, employing argumentative prompting (de Wynter and
+Yuan, 2024). We compare this informed documentation im-
+provement with two uninformed improvements, where the
+LLM is provided with just the original documentation, with
+or without the original source code. Next, we discuss the
+agent’s results on these two benchmarks and demonstrate
+the erroneous prompts utility.
+File Management Benchmark
+This benchmark assesses
+agents equipped with either LangChain’s terminal tool or
+the File Management Toolkit (Table 4). Fixing the doc-
+umentation based on our erroneous prompts improves the
+agent’s performance in both cases by ≈10%, highlight-
+ing TOOLFUZZ’s utility. The terminal tool showed an
+even greater improvement over the baseline, as its origi-
+nal documentation is less refined compared to the already
+well-crafted documentation in the toolkit.
+GitHub Toolkit Benchmark
+Results for LangChain’s
+GitHub toolkit on our custom benchmark reveal a 6% im-
+provement (Table 5). Initial runs identified critical imple-
+mentation issues in the GitHub toolkit, which were resolved
+to allow evaluation. The improvements to the toolkit doc-
+umentation based on TOOLFUZZ findings are 4% higher
+compared to the uninformed. Similar to the File Manage-
+ment Toolkit, improvements are bounded due to the toolkit’s
+already well-crafted documentation.
+5.4. Case Study
+We present a case study of the LangChain tool pubmed. Two
+additional case studies are available in App. D. The PubMed
+tool has short and concise documentation, as shown in Fig-
+ure 6.A in App. D. Let’s now consider two of the erroneous
+prompts that TOOLFUZZ discovered:
+1. Can you list some papers for cancer from 2020 using
+RNA technology?
+2. What are the latest research findings on cancer treat-
+ment?
+Both prompts concern date handling: the first requests
+papers from 2020, while the second seeks the latest
+research. In the first case, pubmed outputs: "Published:
+2024-09-15 Title:
+A novel small molecule ZYZ384...",
+which is clearly not from 2020.
+This error occurs
+because the tool invocation is:
+pubmed(query="cancer
+RNA technology 2020"),
+and this query formulation
+only searches in paper titles.
+The PubMed Web-API
+specifies a particular syntax for querying specific fields, e.g.,
+publication date: ("2020/01/01"[Date - Publication] :
+"2021/01/01"[Date - Publication]). However, this cru-
+cial detail is missing from the LangChain tool documenta-
+tion, causing the error detected by TOOLFUZZ. We resolved
+this issue by updating the documentation (see Figure 6.E in
+App. D). This enables the agent to now formulate an accu-
+rate query, resulting in: pubmed(query="cancer AND RNA
+technology AND ("2020/01/01"[Date - Publication]
+:
+"2020/12/31"[Date - Publication])"),
+which
+now produces correct output “Published:
+2020-11-26
+Title:
+TUG1 long non-coding RNA...”.
+6. Conclusion
+We introduced TOOLFUZZ, the first method to test tools in
+an agent environment. TOOLFUZZ tests systematically and
+automatically by building a fuzzing inspired method, inte-
+grated with LLM-based prompt generation. We demonstrate
+TOOLFUZZ’s effectiveness in a series of experiments, un-
+covering more than 20× the number of erroneous prompts.
+This work opens various research directions, including the
+expansion of TOOLFUZZ to test multiple tools simultane-
+ously to allow the discovery of cross-coordination failures or
+automated documentation refinement. TOOLFUZZ closes a
+critical gap in the testing frameworks for LLM-based agents,
+enabling a more robust and reliable tooling ecosystems.
+8
+
+
+----- [page 9] -----
+ToolFuzz - Automated Agent Tool Testing
+Broader Impact
+This paper presents work whose goal is to advance the field
+of Machine Learning. There are many potential societal
+consequences of our work, none which we feel must be
+specifically highlighted here.
+9
+
+
+----- [page 10] -----
+ToolFuzz - Automated Agent Tool Testing
+References
+Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran,
+Karthik Narasimhan, and Yuan Cao. React: Synergizing
+reasoning and acting in language models, 2023a. URL
+https://arxiv.org/abs/2210.03629.
+Matei Zaharia, Omar Khattab, Lingjiao Chen, Jared Quincy
+Davis, Heather Miller, Chris Potts, James Zou, Michael
+Carbin, Jonathan Frankle, Naveen Rao, and Ali Gh-
+odsi.
+The shift from models to compound ai sys-
+tems. https://bair.berkeley.edu/blog/2024/02/18/
+compound-ai-systems/, 2024.
+Shuyan Zhou, Frank F. Xu, Hao Zhu, Xuhui Zhou, Robert
+Lo, Abishek Sridhar, Xianyi Cheng, Tianyue Ou, Yonatan
+Bisk, Daniel Fried, Uri Alon, and Graham Neubig. We-
+barena: A realistic web environment for building au-
+tonomous agents, 2024. URL https://arxiv.org/abs/
+2307.13854.
+John Yang, Carlos E. Jimenez, Alexander Wettig, Kilian
+Lieret, Shunyu Yao, Karthik Narasimhan, and Ofir Press.
+Swe-agent: Agent-computer interfaces enable automated
+software engineering, 2024a. URL https://arxiv.org/
+abs/2405.15793.
+Bing Wang, Changyu Ren, Jian Yang, Xinnian Liang, Jiaqi
+Bai, Linzheng Chai, Zhao Yan, Qian-Wen Zhang, Di Yin,
+Xing Sun, and Zhoujun Li.
+Mac-sql: A multi-agent
+collaborative framework for text-to-sql, 2024a. URL
+https://arxiv.org/abs/2312.11242.
+Jimin Sun, So Yeon Min, Yingshan Chang, and Yonatan
+Bisk. Tools fail: Detecting silent errors in faulty tools.
+CoRR, abs/2406.19228, 2024.
+John Yang, Carlos E. Jimenez, Alexander Wettig, Kilian
+Lieret, Shunyu Yao, Karthik Narasimhan, and Ofir Press.
+Swe-agent: Agent-computer interfaces enable automated
+software engineering. CoRR, abs/2405.15793, 2024b.
+Mislav
+Balunovic.
+What
+we’ve
+learned
+from
+analyzing
+hundreds
+of
+ai
+web
+agent
+traces.
+https://invariantlabs.ai/blog/
+what-we-learned-from-analyzing-web-agents,
+2024.
+Siyu Yuan, Kaitao Song, Jiangjie Chen, Xu Tan, Yongliang
+Shen, Ren Kan, Dongsheng Li, and Deqing Yang. Easy-
+tool: Enhancing llm-based agents with concise tool in-
+struction, 2024.
+URL https://arxiv.org/abs/2401.
+06201.
+Changle Qu, Sunhao Dai, Xiaochi Wei, Hengyi Cai,
+Shuaiqiang Wang, Dawei Yin, Jun Xu, and Ji-Rong
+Wen. From exploration to mastery: Enabling llms to
+master tools via self-driven interactions, 2024.
+URL
+https://arxiv.org/abs/2410.08197.
+OpenAI, Josh Achiam, Steven Adler, Sandhini Agarwal,
+Lama Ahmad, Ilge Akkaya, Florencia Leoni Aleman,
+Diogo Almeida, Janko Altenschmidt, Sam Altman, Shya-
+mal Anadkat, Red Avila, Igor Babuschkin, Suchir Balaji,
+Valerie Balcom, Paul Baltescu, Haiming Bao, Moham-
+mad Bavarian, Jeff Belgum, Irwan Bello, Jake Berdine,
+Gabriel Bernadett-Shapiro, Christopher Berner, Lenny
+Bogdonoff, Oleg Boiko, Madelaine Boyd, Anna-Luisa
+Brakman, Greg Brockman, Tim Brooks, Miles Brundage,
+Kevin Button, Trevor Cai, Rosie Campbell, Andrew
+Cann, Brittany Carey, Chelsea Carlson, Rory Carmichael,
+Brooke Chan, Che Chang, Fotis Chantzis, Derek Chen,
+Sully Chen, Ruby Chen, Jason Chen, Mark Chen, Ben
+Chess, Chester Cho, Casey Chu, Hyung Won Chung,
+Dave Cummings, Jeremiah Currier, Yunxing Dai, Cory
+Decareaux, Thomas Degry, Noah Deutsch, Damien Dev-
+ille, Arka Dhar, David Dohan, Steve Dowling, Sheila
+Dunning, Adrien Ecoffet, Atty Eleti, Tyna Eloundou,
+David Farhi, Liam Fedus, Niko Felix, Simón Posada
+Fishman, Juston Forte, Isabella Fulford, Leo Gao, Elie
+Georges, Christian Gibson, Vik Goel, Tarun Gogineni,
+Gabriel Goh, Rapha Gontijo-Lopes, Jonathan Gordon,
+Morgan Grafstein, Scott Gray, Ryan Greene, Joshua
+Gross, Shixiang Shane Gu, Yufei Guo, Chris Hallacy,
+Jesse Han, Jeff Harris, Yuchen He, Mike Heaton, Jo-
+hannes Heidecke, Chris Hesse, Alan Hickey, Wade
+Hickey, Peter Hoeschele, Brandon Houghton, Kenny
+Hsu, Shengli Hu, Xin Hu, Joost Huizinga, Shantanu
+Jain, Shawn Jain, Joanne Jang, Angela Jiang, Roger
+Jiang, Haozhun Jin, Denny Jin, Shino Jomoto, Billie Jonn,
+Heewoo Jun, Tomer Kaftan, Łukasz Kaiser, Ali Kamali,
+Ingmar Kanitscheider, Nitish Shirish Keskar, Tabarak
+Khan, Logan Kilpatrick, Jong Wook Kim, Christina Kim,
+Yongjik Kim, Jan Hendrik Kirchner, Jamie Kiros, Matt
+Knight, Daniel Kokotajlo, Łukasz Kondraciuk, Andrew
+Kondrich, Aris Konstantinidis, Kyle Kosic, Gretchen
+Krueger, Vishal Kuo, Michael Lampe, Ikai Lan, Teddy
+Lee, Jan Leike, Jade Leung, Daniel Levy, Chak Ming
+Li, Rachel Lim, Molly Lin, Stephanie Lin, Mateusz
+Litwin, Theresa Lopez, Ryan Lowe, Patricia Lue, Anna
+Makanju, Kim Malfacini, Sam Manning, Todor Markov,
+Yaniv Markovski, Bianca Martin, Katie Mayer, Andrew
+Mayne, Bob McGrew, Scott Mayer McKinney, Chris-
+tine McLeavey, Paul McMillan, Jake McNeil, David
+Medina, Aalok Mehta, Jacob Menick, Luke Metz, An-
+drey Mishchenko, Pamela Mishkin, Vinnie Monaco,
+Evan Morikawa, Daniel Mossing, Tong Mu, Mira Mu-
+rati, Oleg Murk, David Mély, Ashvin Nair, Reiichiro
+Nakano, Rajeev Nayak, Arvind Neelakantan, Richard
+Ngo, Hyeonwoo Noh, Long Ouyang, Cullen O’Keefe,
+Jakub Pachocki, Alex Paino, Joe Palermo, Ashley Pan-
+tuliano, Giambattista Parascandolo, Joel Parish, Emy
+Parparita, Alex Passos, Mikhail Pavlov, Andrew Peng,
+Adam Perelman, Filipe de Avila Belbute Peres, Michael
+10
+
+
+----- [page 11] -----
+ToolFuzz - Automated Agent Tool Testing
+Petrov, Henrique Ponde de Oliveira Pinto, Michael, Poko-
+rny, Michelle Pokrass, Vitchyr H. Pong, Tolly Powell,
+Alethea Power, Boris Power, Elizabeth Proehl, Raul Puri,
+Alec Radford, Jack Rae, Aditya Ramesh, Cameron Ray-
+mond, Francis Real, Kendra Rimbach, Carl Ross, Bob
+Rotsted, Henri Roussez, Nick Ryder, Mario Saltarelli,
+Ted Sanders, Shibani Santurkar, Girish Sastry, Heather
+Schmidt, David Schnurr, John Schulman, Daniel Selsam,
+Kyla Sheppard, Toki Sherbakov, Jessica Shieh, Sarah
+Shoker, Pranav Shyam, Szymon Sidor, Eric Sigler, Mad-
+die Simens, Jordan Sitkin, Katarina Slama, Ian Sohl,
+Benjamin Sokolowsky, Yang Song, Natalie Staudacher,
+Felipe Petroski Such, Natalie Summers, Ilya Sutskever,
+Jie Tang, Nikolas Tezak, Madeleine B. Thompson, Phil
+Tillet, Amin Tootoonchian, Elizabeth Tseng, Preston Tug-
+gle, Nick Turley, Jerry Tworek, Juan Felipe Cerón Uribe,
+Andrea Vallone, Arun Vijayvergiya, Chelsea Voss, Car-
+roll Wainwright, Justin Jay Wang, Alvin Wang, Ben
+Wang, Jonathan Ward, Jason Wei, CJ Weinmann, Ak-
+ila Welihinda, Peter Welinder, Jiayi Weng, Lilian Weng,
+Matt Wiethoff, Dave Willner, Clemens Winter, Samuel
+Wolrich, Hannah Wong, Lauren Workman, Sherwin Wu,
+Jeff Wu, Michael Wu, Kai Xiao, Tao Xu, Sarah Yoo,
+Kevin Yu, Qiming Yuan, Wojciech Zaremba, Rowan
+Zellers, Chong Zhang, Marvin Zhang, Shengjia Zhao,
+Tianhao Zheng, Juntang Zhuang, William Zhuk, and Bar-
+ret Zoph. Gpt-4 technical report, 2024. URL https:
+//arxiv.org/abs/2303.08774.
+OpenAI.
+Gpt-4o mini:
+Advancing cost-efficient in-
+telligence, 2024.
+URL https://openai.com/index/
+gpt-4o-mini-advancing-cost-efficient-intelligence.
+Percy Liang, Rishi Bommasani, Tony Lee, Dimitris Tsipras,
+Dilara Soylu, Michihiro Yasunaga, Yian Zhang, Deepak
+Narayanan, Yuhuai Wu, Ananya Kumar, Benjamin New-
+man, Binhang Yuan, Bobby Yan, Ce Zhang, Christian
+Cosgrove, Christopher D. Manning, Christopher Ré, Di-
+ana Acosta-Navas, Drew A. Hudson, Eric Zelikman,
+Esin Durmus, Faisal Ladhak, Frieda Rong, Hongyu
+Ren, Huaxiu Yao, Jue Wang, Keshav Santhanam, Lau-
+rel Orr, Lucia Zheng, Mert Yuksekgonul, Mirac Suz-
+gun, Nathan Kim, Neel Guha, Niladri Chatterji, Omar
+Khattab, Peter Henderson, Qian Huang, Ryan Chi,
+Sang Michael Xie, Shibani Santurkar, Surya Ganguli, Tat-
+sunori Hashimoto, Thomas Icard, Tianyi Zhang, Vishrav
+Chaudhary, William Wang, Xuechen Li, Yifan Mai, Yuhui
+Zhang, and Yuta Koreeda. Holistic evaluation of lan-
+guage models, 2023.
+URL https://arxiv.org/abs/
+2211.09110.
+Yubo Wang, Xueguang Ma, Ge Zhang, Yuansheng Ni,
+Abhranil Chandra, Shiguang Guo, Weiming Ren, Aaran
+Arulraj, Xuan He, Ziyan Jiang, Tianle Li, Max Ku, Kai
+Wang, Alex Zhuang, Rongqi Fan, Xiang Yue, and Wenhu
+Chen. Mmlu-pro: A more robust and challenging multi-
+task language understanding benchmark, 2024b. URL
+https://arxiv.org/abs/2406.01574.
+Nayeon Lee, Wei Ping, Peng Xu, Mostofa Patwary, Pascale
+Fung, Mohammad Shoeybi, and Bryan Catanzaro. Fac-
+tuality enhanced language models for open-ended text
+generation, 2023. URL https://arxiv.org/abs/2206.
+04624.
+Potsawee Manakul, Adian Liusie, and Mark J. F. Gales.
+Selfcheckgpt: Zero-resource black-box hallucination de-
+tection for generative large language models, 2023. URL
+https://arxiv.org/abs/2303.08896.
+Niels Mündler, Jingxuan He, Slobodan Jenko, and Mar-
+tin Vechev. Self-contradictory hallucinations of large
+language models: Evaluation, detection and mitigation,
+2024. URL https://arxiv.org/abs/2305.15852.
+Lukas Fluri, Daniel Paleka, and Florian Tramèr. Evaluating
+superhuman models with consistency checks, 2023. URL
+https://arxiv.org/abs/2306.09983.
+Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le,
+Ed Chi, Sharan Narang, Aakanksha Chowdhery, and
+Denny Zhou. Self-consistency improves chain of thought
+reasoning in language models, 2023a.
+URL https:
+//arxiv.org/abs/2203.11171.
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten
+Bosma, Brian Ichter, Fei Xia, Ed Chi, Quoc Le, and
+Denny Zhou. Chain-of-thought prompting elicits rea-
+soning in large language models, 2023. URL https:
+//arxiv.org/abs/2201.11903.
+Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan
+Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuo-
+han Li, Dacheng Li, Eric P. Xing, Hao Zhang, Joseph E.
+Gonzalez, and Ion Stoica. Judging llm-as-a-judge with
+mt-bench and chatbot arena, 2023. URL https://arxiv.
+org/abs/2306.05685.
+Bei Chen, Fengji Zhang, Anh Nguyen, Daoguang Zan, Zeqi
+Lin, Jian-Guang Lou, and Weizhu Chen. Codet: Code
+generation with generated tests, 2022. URL https://
+arxiv.org/abs/2207.10397.
+Noah Shinn, Federico Cassano, Edward Berman, Ashwin
+Gopinath, Karthik Narasimhan, and Shunyu Yao. Reflex-
+ion: Language agents with verbal reinforcement learning,
+2023. URL https://arxiv.org/abs/2303.11366.
+Guanzhi Wang, Yuqi Xie, Yunfan Jiang, Ajay Mandlekar,
+Chaowei Xiao, Yuke Zhu, Linxi Fan, and Anima Anand-
+kumar. Voyager: An open-ended embodied agent with
+large language models, 2023b. URL https://arxiv.
+org/abs/2305.16291.
+11
+
+
+----- [page 12] -----
+ToolFuzz - Automated Agent Tool Testing
+Xiao Liu, Hao Yu, Hanchen Zhang, Yifan Xu, Xuanyu
+Lei, Hanyu Lai, Yu Gu, Hangliang Ding, Kaiwen Men,
+Kejuan Yang, Shudan Zhang, Xiang Deng, Aohan Zeng,
+Zhengxiao Du, Chenhui Zhang, Sheng Shen, Tianjun
+Zhang, Yu Su, Huan Sun, Minlie Huang, Yuxiao Dong,
+and Jie Tang. Agentbench: Evaluating llms as agents,
+2023. URL https://arxiv.org/abs/2308.03688.
+Edoardo Debenedetti, Jie Zhang, Mislav Balunovi´c, Luca
+Beurer-Kellner, Marc Fischer, and Florian Tramèr. Agent-
+dojo: A dynamic environment to evaluate attacks and de-
+fenses for llm agents, 2024. URL https://arxiv.org/
+abs/2406.13352.
+Silen Naihin, David Atkinson, Marc Green, Merwane
+Hamadi, Craig Swift, Douglas Schonholtz, Adam Tau-
+man Kalai, and David Bau.
+Testing language model
+agents safely in the wild, 2023. URL https://arxiv.
+org/abs/2311.10538.
+Yangjun Ruan, Honghua Dong, Andrew Wang, Silviu Pitis,
+Yongchao Zhou, Jimmy Ba, Yann Dubois, Chris J. Mad-
+dison, and Tatsunori Hashimoto. Identifying the risks
+of lm agents with an lm-emulated sandbox, 2024. URL
+https://arxiv.org/abs/2309.15817.
+Xiang Deng, Yu Gu, Boyuan Zheng, Shijie Chen, Samuel
+Stevens, Boshi Wang, Huan Sun, and Yu Su. Mind2web:
+Towards a generalist agent for the web, 2023a. URL
+https://arxiv.org/abs/2306.06070.
+Shunyu Yao, Howard Chen, John Yang, and Karthik
+Narasimhan. Webshop: Towards scalable real-world web
+interaction with grounded language agents, 2023b. URL
+https://arxiv.org/abs/2207.01206.
+Tianbao Xie, Danyang Zhang, Jixuan Chen, Xiaochuan
+Li, Siheng Zhao, Ruisheng Cao, Toh Jing Hua, Zhoujun
+Cheng, Dongchan Shin, Fangyu Lei, Yitao Liu, Yiheng
+Xu, Shuyan Zhou, Silvio Savarese, Caiming Xiong, Vic-
+tor Zhong, and Tao Yu. Osworld: Benchmarking multi-
+modal agents for open-ended tasks in real computer en-
+vironments, 2024. URL https://arxiv.org/abs/2404.
+07972.
+H. Mao F. Yan, C. C.-J. Ji, T. Zhang, S. G. Patil, I. Stoica,
+, and J. E. Gonzalez. Berkeley function calling leader-
+board.
+https://gorilla.cs.berkeley.edu/blogs/8_
+berkeley_function_calling_leaderboard.html.
+Qiaoyu Tang, Ziliang Deng, Hongyu Lin, Xianpei Han,
+Qiao Liang, Boxi Cao, and Le Sun. Toolalpaca: Gen-
+eralized tool learning for language models with 3000
+simulated cases, 2023. URL https://arxiv.org/abs/
+2306.05301.
+Qiantong Xu, Fenglu Hong, Bo Li, Changran Hu, Zhengyu
+Chen, and Jian Zhang. On the tool manipulation capa-
+bility of open-source large language models, 2023. URL
+https://arxiv.org/abs/2305.16504.
+Yue Huang, Jiawen Shi, Yuan Li, Chenrui Fan, Siyuan Wu,
+Qihui Zhang, Yixin Liu, Pan Zhou, Yao Wan, Neil Zhen-
+qiang Gong, and Lichao Sun. Metatool benchmark for
+large language models: Deciding whether to use tools
+and which to use, 2024a. URL https://arxiv.org/abs/
+2310.03128.
+Cheng Wen. Recent Papers Related To Fuzzing, 2024. URL
+https://wcventure.github.io/FuzzingPaper/.
+Ac-
+cessed: 2024-10-21.
+Andreas Zeller, Rahul Gopinath, Marcel Böhme, Gordon
+Fraser, and Christian Holler. The Fuzzing Book. CISPA
+Helmholtz Center for Information Security, 2024. URL
+https://www.fuzzingbook.org/. Retrieved 2024-07-01
+16:50:18+02:00.
+Linghan Huang, Peizhou Zhao, Huaming Chen, and Lei
+Ma. Large language models based fuzzing techniques:
+A survey, 2024b. URL https://arxiv.org/abs/2402.
+00350.
+Chenyuan Yang, Yinlin Deng, Runyu Lu, Jiayi Yao, Ji-
+awei Liu, Reyhaneh Jabbarvand, and Lingming Zhang.
+Whitefox: White-box compiler fuzzing empowered by
+large language models, 2024c. URL https://arxiv.
+org/abs/2310.15991.
+Yinlin Deng, Chunqiu Steven Xia, Haoran Peng, Chenyuan
+Yang, and Lingming Zhang. Large language models are
+zero-shot fuzzers: Fuzzing deep-learning libraries via
+large language models, 2023b. URL https://arxiv.
+org/abs/2212.14834.
+Yu Jiang, Jie Liang, Fuchen Ma, Yuanliang Chen, Chijin
+Zhou, Yuheng Shen, Zhiyong Wu, Jingzhou Fu, Mingzhe
+Wang, ShanShan Li, and Quan Zhang. When fuzzing
+meets llms: Challenges and opportunities, 2024. URL
+https://arxiv.org/abs/2404.16297.
+Jingxuan He, Mislav Balunovi´c, Nodar Ambroladze, Petar
+Tsankov, and Martin Vechev.
+Learning to fuzz from
+symbolic execution with application to smart contracts.
+In Proceedings of the 2019 ACM SIGSAC Conference
+on Computer and Communications Security, CCS ’19,
+pages 531–548, New York, NY, USA, 2019. Association
+for Computing Machinery. ISBN 9781450367479. doi:
+10.1145/3319535.3363230. URL https://doi.org/10.
+1145/3319535.3363230.
+12
+
+
+----- [page 13] -----
+ToolFuzz - Automated Agent Tool Testing
+Shunyu Yao, Noah Shinn, Pedram Razavi, and Karthik
+Narasimhan.
+τ-bench: A benchmark for tool-agent-
+user interaction in real-world domains, 2024.
+URL
+https://arxiv.org/abs/2406.12045.
+ScaleAI. Agentic tool use (chat). URL https://scale.
+com/leaderboard/tool_use_chat/.
+Harrison Chase. LangChain, October 2022. URL https:
+//github.com/langchain-ai/langchain.
+Daniele Faraglia. Faker, 2025. URL https://github.com/
+joke2k/faker. Accessed: 2025-01-30, Version 35.1.0.
+Adrian de Wynter and Tangming Yuan. "i’d like to have
+an argument, please": Argumentative reasoning in large
+language models, 2024. URL https://arxiv.org/abs/
+2309.16938.
+13
+
+
+----- [page 14] -----
+ToolFuzz - Automated Agent Tool Testing
+Agent
+Query
+User
+Answer
+Plan
+LLM
+Tool output
+Tool
+Source code
+provides with
+Description
+invoke
+Actions
+(1)
+(2)
+(3)
+(4)
+(5)
+(6)
+Figure 4: High-level system diagram of an LLM (AI) Agent. The flow of the diagram follows the numbering: (1) User
+sends a query to the Agent. Alongside with the user query the Agent is provided with the description of all tools available to
+it (2). With this information the LLM plans (3) actions. Some of these actions require tool invocations (4). After tool calls,
+an observation is made (5). Based on the observation the agent responds with an answer to the User (6).
+A. Source code
+The source code for this work is attached as a zip file alongside it.
+All the instructions on how to run the code base are written in the README.md file, located at the root directory of the
+project. The codebase is written in Python 3.10 using a Conda virtual environment, all dependencies are listed under the
+requirements.yml file – instruction on how to setup the environment are also provided in the README.md file.
+B. Agent
+In this work, the main focus is on the usage of tools. This said we consider a minimal agent system design meaning just
+an LLM for reasoning and planning, and tools. This design choice is made to minimize system overhead. The general
+framework considered can be seen in Figure 4.
+C. Additional evaluation
+To accompany the evaluation presented in the main article, we have conducted additional experiments and figures to further
+evaluate the effectiveness of TOOLFUZZ. To further evaluate the effectiveness of TOOLFUZZ in having low false positive
+rate, we have plotted the number of true and false positives per tool category in Figure 5. The figure shows that TOOLFUZZ
+has a low false positive rate across all tool categories and the numbers shown in Table 3 are not inflated by good performance
+on subset of tool categories.
+C.1. Cross tool calling
+We have used prompts generated from TOOLFUZZ to assess whether tool documentations are too broad, leading to unintended
+activations across different categories. As discussed in §2, underspecification can prompt undesired tool invocations. We
+categorized tools by their domain and sampled prompts intended for different tool groups. Our experiment revealed that 492
+prompts led to unplanned tool usages across 53 tools. Detailed results can be found in the experiment folder within the
+source code (./src/eval/cross_tool_calling). The tool categories are presented in the paragraph below.
+Tools categorization
+As we wanted to test cross tool calling, we have grouped the tools listed in App. G into groups with
+respect to their domain. The groups are as follows:
+1. Dall-E: Dall-E-Image-Generator
+2. NASA Image and Video Library: Get Nasa Image and Video Library media metadata manifest, Get NASA Image and
+Video Library media metadata location, Search NASA Image and Video Library media, Get NASA Image and Video
+Library video captions location
+3. Knowledge Repositories: wikidata, wikipedia, stack_exchange
+4. Academic Resources: arxiv, semanticscholar, pubmed
+14
+
+
+----- [page 15] -----
+ToolFuzz - Automated Agent Tool Testing
+Figure 5: This bar chart illustrates the number of erroneous prompts identified by different methods across various tool
+categories. Each method is depicted as a stacked bar, with the upper segment showing the true positives (correctly identified
+erroneous prompts) and the lower segment indicating the false positives.
+5. Search engines: duckduckgosearch, duckduckgosearchresult, stack_exchange, youtube_search
+6. File operations: file_search, list_directories, terminal, python_repl, python_repl_ast
+7. File deletions: file_delete, terminal, python_repl, python_repl_ast
+8. Move files: move_file, terminal, python_repl, python_repl_ast
+9. Read files: read_file, terminal, python_repl, python_repl_ast
+10. Copy files: copy_file, terminal, python_repl, python_repl_ast
+11. HTTP Requests: request_delete, terminal, python_repl, python_repl_ast, requests_get, requests_patch, requests_post,
+requests_put
+12. Map search: open-street-map-search
+13. JSON Operations: json_spec_list_keys, json_spec_get_value
+14. Directions: open-street-map-distance
+15. GraphQL: query_grapql
+D. Case studies
+In this section, we present two additional case studies in addition to the one presented in the main article (§5.4). The tools
+we are looking at are open-street-map-directions, tool for navigating on open street map which is developed by the
+authors and a LangChain tool terminal which is designed to execute shell commands on the host system.
+15
+
+
+----- [page 16] -----
+ToolFuzz - Automated Agent Tool Testing
+A
+Original tool documentation
+Tool function declaration: def open_street_map_(query: str) →str:
+Tool documentation: Tool to query a map. This tool can locate places by name and simple queries such as: libraries in San Francisco. The idea of the tool is to locate places like coffee
+shops, offices, etc.
+B
+Original PubMed documentation:
+Input arguments: query - type string.
+Tool documentation: A wrapper around PubMed. Useful for when you need to answer questions about medicine, health, and biomedical topics from biomedical literature MEDLINE, life
+science journals, and online books. Input should be a search query.
+C
+Original Terminal tool documentation:
+Input arguments: commands - type: Union[str, List[str]], description: List of shell commands to run. Deserialized using json.loads.
+Tool documentation: Run shell commands on this Linux machine.
+D
+Fixed tool documentation
+Tool function declaration: def open_street_map_(query: str) →str:
+Tool documentation: Tool which can find a route between two locations and give back the distance in km of that route. The route is on roads that can be driven with a car. The tool provides
+route distance in km for a car trip between the two locations. The two locations can be cities or concrete places i.e. office buildings, shops, parks, and so on. Tool arguments with cities must
+always include the full names and countries i.e. NYC →New York City, USA or Paris →Paris, France.
+E
+Fixed PubMed documentation:
+Input arguments: query - type string.
+Tool documentation: A wrapper around PubMed. Useful for when you need to answer questions about medicine, health, and biomedical topics from biomedical literature, MEDLINE, life
+science journals, and online books. Input should be a search query. The query has special syntax for different fields in the paper:
+The list of available search fields is: All Fields, Author, Date - Create, Date - Publication, EC/RN Number, Editor, Title, Title/Abstract, Transliterated Title, VolumeFor some fields i.e. the
+date fields ranges are available. Here is an example of a date query and its usage.
+List papers that are from 2010: ("2010/01/01"[Date - Entry] : "2011/01/01"[Date - Entry])
+Most of the other fields are used as follows:
+List papers with first author John Doe: John Doe[Author].
+In order to combine a filter with multiple fields we use AND. Here is an example:
+What are the papers with Last Author Ivan from 2020 until now:(Ivan[Author - Last]) AND (("2020/02"[Date - Create] : "3000"[Date - Create]))
+F
+Fixed Terminal tool documentation:
+Input arguments: commands - type: Union[str, List[str]], description: List of shell commands to run. Deserialized using json.loads.
+Tool documentation: Execute shell commands on this Linux machine. Use clear, concise commands with relative paths. Enclose paths with spaces in quotes. Validate command syntax
+and file paths. The tool can be invoked multiple times to ensure correct file system state.
+Figure 6: a case study comparing the original and improved descriptions of three tools: open_street_map, pubmed, and
+terminal. The first set of three red boxes represents the original descriptions of these tools, which are prone to failures,
+while the second set of three green boxes shows the same tools with improved descriptions designed to reduce errors.
+OpenStreetMap directions
+Now let’s look at an example of the open street map. Here are the prompts in the prompt set
+P:
+1. What is the car route distance from Paris to Lyon?
+2. What is the car route distance from Paris, France to Lyon, France?
+3. What is the car route distance from City of Paris to City of Lyon?
+4. What is the car route distance from Paris FR to Lyon FR?
+5. What is the car route distance from Paris France to Lyon France?
+For this prompt set the generated expected answer is: "The road distance between Paris and Lyon is approximately 465
+kilometers (289 miles).".
+After invoking the agent with those prompts, there are 2 output buckets. The first bucket contains: 1, 2, 4 and 5 with tool
+output – "The distance between City of Paris to Lyon is 939224.1 meters", while the second is just one prompt 3 with output:
+"The distance between Paris to Lyon is 465460.3 meters".
+The input argument buckets are three, grouped as follows:
+• bucket 1: {1} with parameters:
+16
+
+
+----- [page 17] -----
+ToolFuzz - Automated Agent Tool Testing
+{from_location_query:
+"Paris", to_location_query:
+"Lyon"}
+• bucket 2: {2, 4, 5} with parameters:
+{from_location_query:
+"Paris, France", to_location_query:
+"Lyon, France"}
+• bucket 3: {3} with input parameters:
+{from_location_query:
+"City of Paris", to_location_query:
+"City of Lyon"}
+From the bucketing, we can make the observation that the inputs with full country name work well, and using just a city
+name works half the time (input bucket 1 and bucket 3) so one way to fix this is to add the requirement of country name in
+the argument to the tool’s description. The fixed description can be found in Figure 6.D. With the fixed description, the
+example prompt set passes.
+Terminal
+The terminal tool has a very short and generic description as shown in Figure 6.C. This description, however,
+does not explain at all how to properly use the tool i.e. in what way the command parameters have to be presented, which
+commands can be used etc.
+Here is an erroneous set of prompts found by TOOLFUZZ:
+1. How big is the assignment_1_draft.docx file in the Contract Law assignments folder?
+2. Find the size of the draft of assignment 1 file in the
+/[FULL_PATH]/Law_Student_Files/Academics/Courses/Semester_1/... directory.
+3. What is the file size of the first draft of assignment 1 in the Contract Law assignments folder?
+4. Find the size of the assignment one draft file in the
+/[FULL_PATH]/Law_Student_Files/Academics/Courses/Semester_1/... directory.
+The FULL_PATH is in fact the full path; however, we have masked it out as it is part of the machine’s file structure.
+The prompt set has the goal of finding the size of the first Assignment in the Contract law assignments folder. It is important
+to note that the agent is unaware of the directory in which it is running.
+In this case, both the number of input and output buckets is four – each prompt resulted in a unique input parameters and
+tool output:
+1. tool input: {"commands":"du -h
+/Contract Law/assignments/assignment_1_draft.docx"}
+tool output: cannot access
+’/Contract Law/assignments/assignment_1_draft.docx’:
+No such file or directory
+2. tool input:
+{"commands":"du -sh /[FULL_PATH]/Assignments/assignment_1_draft.*"}
+tool output: 0 /[FULL_PATH]/assignment_1_draft.docx
+3. tool input: {"commands":"ls -lh ~/Contract Law/assignments/ | grep ’assignment 1 draft’"}
+tool output: "ls:
+cannot access ’~/Contract Law/’:
+No such file or directory"
+4. tool input: {"commands":"ls [FULL_PATH]/Law_Student_Files/Templates"}
+tool output: ""
+As can be seen, each prompt results in unique input parameters and tool output. We can see that twice in prompts 1 and 3
+the tool tries to access invalid paths. For prompt 4 the path is correct; however, the task at hand is not just to list a directory.
+The general error here seems to be related to the provided paths – the description does not give any inside information to the
+agent on where the Terminal tool is or how to navigate. With this information found by TOOLFUZZ and using the previously
+described autofix method (§5.3) a new description is generated (Figure 6). With this new description, the prompt set is now
+valid by just using ls multiple times to properly navigate the file system.
+17
+
+
+----- [page 18] -----
+ToolFuzz - Automated Agent Tool Testing
+Please invoke the {tool.name} exactly like: {tool.name}({bad_arg})
+Figure 7: Sanity check prompt for forcing the agent to invoke the tool under test with the erroneous arguments.
+Imagine you are a user who is using an AI agent. You have the following agent with its tool at your disposal:
+{tool_prompt}
+{format_instructions}
+Come up with prompts which will invoke the tool with one of these predefined arguments: {bad_args}. Make use of the given arguments!
+Figure 8: Prompt for generating realistic user prompt which will invoke the tool under test with erronoeous arguments.
+E. TOOLFUZZ Prompts
+In this subsection of the Appendix all prompts used for TOOLFUZZ are listed. For all the following prompts, string templates
+are used – {variable} will be inserted with the corresponding variable when the prompt is constructed.
+E.1. TOOLFUZZ Runtime tool failure detection
+For the runtime error detection as explained in §4 the heavy lifting is done by the Fuzzer so an LLM is leveraged only for
+sanity check with the prompt Figure 7 and for converting the erroneous argument into a user query which is done with
+Figure 8.
+E.2. TOOLFUZZ correctness detection
+Prompt set generation
+The generation of prompt sets as described in §4.2 involves multiple LLM generations. Firstly,
+the prompt template is generated given the tool description and in some cases additional context, the full prompt is given in
+Figure 9
+The next step is to infill the generated template questions/prompts with synonymous phrases. For this, the following prompt
+is used to generate the phrases which are later inserted in the string templates Figure 10.
+As in some cases when giving context to the prompt generation, some facts are taken directly from the context which is not
+very human, so we have also introduced a humanizing prompt Figure 11.
+E.3. LLM Oracle
+The LLM Oracle has to evaluate the Agent answer according to an expectation. Firstly, the expectation is generated.
+The LLM expectation generation is again a multistage process. Firstly, an LLM is prompted to answer to each of the
+generated prompts from a set of prompts p ∈P – Figure 12. After all the answers are generated, we use them to prompt
+again an LLM to come up with the LLM expectation – Figure 13.
+Lastly, the LLM oracle has to evaluate the Agent output, for this prompt we are using both reasoning and scoring between
+1 and 10 as previous experiments showed that making the LLM to just evaluate with yes/no gave more false positives –
+Figure 14.
+E.4. Baseline prompts
+For the baselines from §5.2. We use the following prompt to generate test prompts - Figure 15 and Figure 16. Here, the
+main difference is that in the white box scenario the tool_info variable will contain both the tool description and the tool
+source code while in the gray box the tool source code is not included.
+In addition to these prompts, the baseline also has their own LLM judge using the following prompt for evaluation –
+Figure 17.
+As mentioned in §5 the baselines can fall into degenerate string generation - examples of such cases can be seen in Figure 18.
+18
+
+
+----- [page 19] -----
+ToolFuzz - Automated Agent Tool Testing
+Can you generate template questions according to a tool description. Here is an example on how to do so Having a map tool which can give me distances between two places possible question templates are:
+What is the distance from [A] to [B]?
+How much time would it take to go from [A] to [B]?
+If I start from [A] and go to [B] with [C] km/h average speed how much time would it take me?
+For tools that are knowledge based i.e. news, fact stores etc. You can generate questions similar to:
+What do you know about [A]?
+What is/are [A] for [B]?
+Is it true that [A] is [B]?
+Is [A] related to [B]?
+In what year did [A] happen?
+When was [A] born?
+Find [A] in [B]?
+[A] my work to [B].
+[A] from [B] to [C].
+Also some more specific questions like:
+Is it true that Mr [A] was related to Mrs. [B]?
+I am at [A], how much time it will take me to go from the closest [B] to the [C] airport?
+Find an article/paper/document written by [A] on topic [B]?
+Now having a tool with description: ’{tool_prompt}’
+And the tool context: {tool_context}
+Please generate templates, try to generate more specific templates. {format_instructions}
+Figure 9: Prompt for generating template questions/prompts for the agent, given the tool under test description and additional
+context if needed.
+F. Benchmarks
+F.1. File Management toolkit benchmark
+The file management toolkit benchmark consists of 32 domain-specific environments. The domains for which we have
+generated file systems are Agriculture and Precision Farming, Biotechnology, Computer Science, Construction and Ar-
+chitecture, Cybersecurity, Data Science, Economics and Market Research, Education and E-Learning, Entertainment and
+Media, Environmental Science, Finance and Banking, Geology and Geophysics, Government and Public Administration,
+Graphic Design and Animation, History and Archival Science, Hospitality and Tourism, Human Resources and Recruitment,
+Journalism and Digital Media, Law and Legal Analytics, Logistics and Supply Chain Management, Machine Learning, Man-
+ufacturing and Automation, Meteorology and Climate Science, Music Production and Sound Engineering, Pharmaceuticals
+and Drug Development, Psychology and Neuroscience, Real Estate, Social Media and Digital Marketing, Sports Science
+and Analytics, Transportation (Autonomous Vehicles, Traffic Management), Video Game Development, Virtual Reality
+(VR) and Augmented Reality (AR).
+Each task of the benchmark is setup in a Docker container. The Docker container has the initial state of the file system as
+well as a ReAct agent with the tool under test. The agent is then presented with the task prompt in the initialized environment.
+Upon completion of the agent’s execution, the success of the task is verified using a git diff between the initial and final
+states (Figure 19).
+For autofixing, GPT-4o is utilized with the following prompts: Figure 20, Figure 22, Figure 21.
+G. Tested Tools
+In this section we present the tools used for the evaluation of TOOLFUZZ. The tools are divided into two categories: tools
+for runtime failure detection and tools for correctness detection.
+G.1. Runtime failure tools
+The following is a list of tools tested for runtime failures.
+Synthetic tools created by the authors
+of
+this
+work:
+check-basketball-match-stats,
+personal_computer_system_builder,
+package-items
+(synthetic),
+compute-bayes-theorem-posteriori,
+summarise-fairy-tale-content,
+compute-law-of-cosines,
+ivanovices_open_close_solver, Jira-issue-work, paper-searcher, json-validator, y_combinator_news_filter,
+forum-search,
+car-parts-filter,
+open-street-map-route-distance,
+website-searcher,
+personal-trainer,
+vans-database-query-engine,
+search-mail,
+daily-news-search,
+json-filter,
+read-files-from-system,
+food-delivery-tool, search-documents, Knowledge-base-search, beverage-factory-order, stock-market-report,
+account-creator, translate-paragraph, search-news-topics, append-to-file, file_reader, find-clothing.
+19
+
+
+----- [page 20] -----
+ToolFuzz - Automated Agent Tool Testing
+Imagine you are a user who is using an AI agent and just ask it in normal speech.
+Please generate appropriate template input values for the given template:
+’{template_prompt}’
+They should be related to the context of tool:
+{tool_prompt}
+And the tool context: {tool_context}
+These inputs should be synonyms or different way of expressing the same thing.
+Here is an example:
+Template: ’What are some [A] in [B]?’
+Infills for A: [’Coffee Shop’, ’Cafeteria’, ’Coffeehouse’, ’Café’]
+Infills for B: [’Zurich’, ’ZH’, ’Zurich Switzerland’, ’ZH CH’, ’ZH Switzerland’, ’Zurich CH’]
+Template: ’Who is [A]?’
+Infills for A: [’Albert Einstein’, ’A. Einstein’, ’Alb. Einstein’, ’Einstein’]
+Template: ’When did [A] happen?’
+Infills for A: [’World War I’ , ’World War One’, ’WW 1’, ’First World War’]
+Template: ’What are the latest news in [A]?
+Infills for A: [’cinema’, ’hollywood’, ’kino’, ’movies’, ’show business’]
+Template: ’What are the [A] in [B]?’
+Infills for A: [’latest news’, ’current events’, ’breaking news’, ’daily news’, ’daily events’]
+Infills for B: [’politics’, ’government’, ’public affairs’]
+Template: ’I am at [A], how much time it will take me to go from the closest [B] to the [C]?’
+Infills for A: [’Zurich HB’, ’Zurich main train station’, ’Zurich main station’]
+Infills for B: [’Mc Donalds’, ’fast food restaurant McDonalds’, ’McD burgers’]
+Infills for C: [’ETH HG Bibliothek’, ’ETH main building library’, ’ETH main library’]
+Template: ’Can you find [A] in [B]?’
+Infills for A: [’family picture’, ’png with the family’, ’family photo’, ’family portrait’]
+Infills for B: [’the home directory’, ’my workspace’, ’main directory’]
+Template: ’[A] [B] to [C]’
+Infills for A: [’Submit’, ’Send’, ’Upload’, ’Commit’]
+Infills for B: [’main.py’, ’the main python file’, ’src/main’, ’the main source file’]
+Infills for C: [’the server’, ’the cloud’, ’the repository’, ’the remote branch’]
+Template: ’[A] my work to [B]’
+Infills for A: [’Move’, ’Transfer’, ’Cut’]
+Infills for B: [’archive folder’, ’the archive’]
+Please DO NOT use any of the already generated examples: {used_args}.
+{format_instructions}.
+Figure 10: Prompt for generating infills for the masks in the prompt templates.
+Given the following tool description: ’{tool_prompt}’ and the following tool prompts that are synonymous: ’{prompts}’ Please make such that the prompts are like a person would write it and not a machine,
+so nothing too concrete but also not too vague.
+{format_instructions}
+Figure 11: Prompt for making more human like prompts. In some cases prompts are too specific i.e. full paths or full
+identificators which users might shorten or write more intuitively.
+The source code for three of these tools can be found in Figure 23, Figure 24, Figure 25. These tools are created to showcase
+the runtime tool failure; their implementation contains only assert statements to validate the function argument constrains,
+which should be reflected in the tool’s documentation.
+Tools from the LangChain community (Chase, 2022):
+duckdcukgo_results_json, jira-account-creator, arxiv,
+query_graphql, ionic_commerce_shopping_tool, pub_med, Open-street-map-search, request_delete, copy_file,
+duckduckgo_search,
+file_search,
+request_patch,
+youtube_search,
+write_file,
+list_directory,
+read_file,
+semanticscholar,
+Get NASA Image and Video Library video captions location,
+Wikidata,
+requests_put,
+Get NASA Image and Video Library media metadata location,
+python_repl,
+move_file,
+stack_exchange,
+requests_get, requests_post, file_delete.
+G.2. Tools statistics
+In this subsection, we have laid down some of the statistics of the Lang chain tools we have collected. That is, the most
+common argument type is String by a huge margin as per Figure 26 Figure 27 as well as the most common number of
+arguments is 2, however in Lang chain all of the tools accept a run-time manager in their run method, so in practice most of
+the tools accept just one argument.
+20
+
+
+----- [page 21] -----
+ToolFuzz - Automated Agent Tool Testing
+You are emulating the following tool: {tool_prompt}. Given the tool return value for the following questions: {questions}
+Example:
+Tool description: Tool which can find a route between two locations and give back the distance in km of that route. The route is on rodes that can be driven with car. The tool provides route distance in km for
+car trip between the two locations.
+The two locations can be cities or concrete places i.e. office buildings, shops, parks and so on.
+Questions:
+What is the distance between Sofia and Zurich?
+What is the distance between SF and ZH?
+What is the distance between Sofia BG and Zurich CH?
+What is the distance between Sofia Bulgaria and Zurich Switzerland?
+Answers:
+The road distance between Sofia, Bulgaria, and Zurich, Switzerland is approximately 1,450 kilometers (900 miles).
+If "SF" refers to San Francisco (SF), California, USA and "ZH" refers to Zurich (ZH), Switzerland, the distance is vast. Since it’s impossible to drive directly due to the Atlantic Ocean, the driving distance
+would be irrelevant. However, hypothetically driving the distance across land would exceed 9,500 kilometers (5,900 miles).
+"BG" stands for Bulgaria and "CH" stands for Switzerland. The road distance between Sofia, Bulgaria, and Zurich, Switzerland is approximately 1,450 kilometers (900 miles)
+The road distance between Sofia, Bulgaria, and Zurich, Switzerland is about 1,450 kilometers (900 miles).
+{format_instructions}.
+Figure 12: Prompt for generating answers for given question. Used for expectation generation for the LLM Oracle.
+You have the following sentences: {sentences}
+Make once sentence which is factually correct to you and most of the sentences, not required to represent all of the answer but MUST be approximately correct.
+Examples:
+Sentences:
+The road distance between Sofia, Bulgaria, and Zurich, Switzerland is approximately 1,450 kilometers (900 miles).
+If "SF" refers to San Francisco (SF), California, USA and "ZH" refers to Zurich (ZH), Switzerland, the distance is vast. Since it’s impossible to drive directly due to the Atlantic Ocean, the driving distance
+would be irrelevant. However, hypothetically driving the distance across land would exceed 9,500 kilometers (5,900 miles).
+"BG" stands for Bulgaria and "CH" stands for Switzerland. The road distance between Sofia, Bulgaria, and Zurich, Switzerland is approximately 1,450 kilometers (900 miles)
+The road distance between Sofia, Bulgaria, and Zurich, Switzerland is about 1,450 kilometers (900 miles).
+Answer: The expected distance is around 1500 kilometers. {format_instructions}.
+Figure 13: Prompt for generating the LLM Expectation for particular tool set P
+21
+
+
+----- [page 22] -----
+ToolFuzz - Automated Agent Tool Testing
+You are assessing an agent RESPONSE. You should give a score between 1 and 10. 10 means that the answer satisfies both criteria: first is the tool output and second is LLM expectation. The agent response
+should be within 10% margin of error or false otherwise. 0 is for when both criteria are not satisfied.
+Alongside the evaluation of true/false, you should provide reasoning for it.
+Use the following examples as reference:
+#Example 1:
+Agent response: The capital city of France is Paris
+Expectations:
+1. No results found for the query
+2. Paris
+correctness_degree: 5
+Reason: The response doesn’t comply with the first expectation: ’No results found for the query’
+#Example 2:
+Agent response: As of now, the current survey results for the 2024 US presidential election show Kamala Harris leading Donald Trump. Here are the key figures:
+- **Kamala Harris**: 46%
+- **Donald Trump**: 48%
+- **Robert F. Kennedy Jr.**: 5.5%
+Harris’s popularity has seen a significant increase, with half of voters viewing her favorably, which is an improvement from 43% the previous week.
+Expectations:
+1. Kamala Harris, Donald Trump.
+2. The current survey results for the 2024 US presidential election show candidate A leading with X%, followed by candidate B with Y%, and other candidates with Z% and W%.
+correctness_degree: 9
+Reason: The response mentions both Kamala Harris and Donald Trump, thus complying with the first expectation, and also presents percentages, thus complying with the second.
+#Example 3:
+Agent response: If you’re looking for a solid, mid-range option, expect to spend around $400 to $500, there is one cheaper option around 350 USD
+Expectation:
+1. $347.99
+2. A TV sells in the range of 400-800 USD
+correctness_degree: 8
+Reason: The response is close enough to the expected values and is based on the expected tool output.
+#Example 4:
+Agent response: The distance between LA and Sofia is 1,047 miles
+Expectation:
+1. Distance from Sofia to LA is 10,633 km
+2. The distance between Sofia and LA is 10,000 KM
+correctness_degree: 2
+Reason: The response doesn’t comply with both expectations - the error is too big, but is still mentioning the correct names.
+Now please evaluate the following agent response and give the reason for your evaluation:
+’{agent_output}’
+Expectations:
+1. {tool_output}
+2. {expected}
+{format_instructions}
+Figure 14: Prompt used by the LLM Oracle to evaluate the correctness of an agent answer given the tool and expectation as
+well as the output of the tool under test
+You are an AI assistant tester. The idea is to come up with prompts which will make the following tool crash.
+Example:
+Tool information: This tool can divide two numbers.
+Crash prompts: [
+"Can you please divide 10 by 0",
+"If I have no friends left how can I divide my apples evenly between them?"
+]
+Tool information: {tool_info}
+Now generate the crash prompts, you MUST give the full string prompt and no further logic has to be run on these prompts. I.e., NO "a" + "b" or other similar logic.
+{format_instructions}
+Figure 15: Prompt for generating prompts with the intention of triggering runtime tool failures.
+You are an AI assistant tester. The idea is to come up with prompts which will make the following tool produce an incorrect answer.
+Tool information: {tool_info}
+Please generate prompts which will make the following tool produce an incorrect answer.
+{format_instructions}
+Figure 16: Prompt for generating prompts for correctness evaluation.
+22
+
+
+----- [page 23] -----
+ToolFuzz - Automated Agent Tool Testing
+You are an AI assistant judge. Your job is to evaluate and reason on the correctness of the given answer knowing the question is:
+{question}
+The provided answer is: {answer}
+Is the answer correct? Please provide reasoning.
+{format_instructions}
+Figure 17: The prompt used by the LLM Judge for baseline correctness evaluation
+Degenerate prompt generations
+’/home/user/../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../..’
+Search for pattern:
+’*’ dir_path:
+’/var/lib/dpkg/lock-frontend-frontend-frontend-frontend-frontend-frontend-frontend-...’
+Out of distribution examples:
+Search for the latest recipes in Italian cuisine on arxiv.
+Search for the most popular movies of all time on arxiv.
+Search for the Garden of Eden.
+Find the nearest time machine rental.
+Find the nearest Hogwarts School of Witchcraft and Wizardry.
+Find the nearest black hole.
+Find the population of New York.
+Search for the nearest alien spaceship.
+Figure 18: Out of distribution and degenerate prompt generation by the baselines
+Expected file system
+state after task
+execution
+Initialize git
+Task
+Prompt
+Reset to initial file
+system state
+Check if task is completed
+File Management
+Agent
+Figure 19: File management benchmark setup
+You are an AI Agent Tool developer can you make the description of a tool more precise and clear. The problem is that the LLM sometimes doesn’t translate the queries correctly.
+This comes from the fact that the tool description doesn’t explain what exactly is allowed and how to use the tool correctly.
+The current description of the tool is: {tool_description}
+Here are some failing examples of the tool in action:
+{bad_examples}
+Given the bad examples please identify the main issues on those examples and what is the cause of that issue.
+How can these issues be avoided by validation i.e. with this tool or external resources or it’s just a user mistake? List the main issues and how to avoid them.
+Now that the issues and how to avoid them are clear. Please create tool description that addresses these issues. The description is a manual on how to use the tool correctly and what is allowed and what is not.
+It should explain how to avoid the issues that were found in the examples. Add that the tool can be invoked multiple times for better validation of the file system state.
+Also give few examples if you think they are applicable.
+Please provide description which reflects these issues. The new description shouldn’t be longer than 100 words.
+{format_instructions}
+Figure 20: Prompt for automatic tool description fixing, based on the tool’s description and as well as a set of prompts
+resulting into tool failures (bad_examples) found by TOOLFUZZ.
+You are an AI Agent Tool developer can you make the description of a tool more precise and clear. The problem is that the LLM sometimes doesn´t translate the queries correctly.
+This comes from the fact that the tool description doesn´t explain what exactly is allowed and how to use the tool correctly.
+The current description of the tool is: {tool_description}
+The description has to be a manual on how to use the tool correctly and what is allowed and what is not.
+Please provide just the new description of the tool.
+{format_instructions}
+Figure 21: Prompt for automatic tool description fixing, based only on the tool description.
+23
+
+
+----- [page 24] -----
+ToolFuzz - Automated Agent Tool Testing
+You are an AI Agent Tool developer can you make the description of a tool more precise and clear. The problem is that the LLM sometimes doesn´t translate the queries correctly.
+This comes from the fact that the tool description doesn´t explain what exactly is allowed and how to use the tool correctly.
+The current description of the tool is: {tool_description}
+Here are some failing examples of the tool in action:
+{bad_examples}
+Given the bad examples please identify the main issues on those examples and what is the cause of that issue.
+How can these issues be avoided by validation i.e. with this tool or external resources or it´s just a user mistake? List the main issues and how to avoid them.
+Now that the issues and how to avoid them are clear. Please create tool description that addresses these issues. The description is a manual on how to use the tool correctly and what is allowed and what is not.
+It should explain how to avoid the issues that were found in the examples. Add that the tool can be invoked multiple times for better validation of the file system state.
+Also give few examples if you think they are applicable.
+Please provide description which reflects these issues. The new description shouldn´t be longer than 100 words.
+{format_instructions}
+Figure 22: Prompt for automatic tool description fixing, based on both the tool’s description and tool’s source code.
+1
+class ClothingSorterInput(BaseModel):
+2
+sizes: List[int] = Field(description="The size of the item.")
+3
+designer: str = Field(description="The designer of the item.")
+# brand
+4
+colors: List[str] = Field(description="The email of the user who sent the email.")
+5
+min_budget: int = Field(description="The minimum budget you have for this item")
+6
+max_budget: int = Field(description="The maximum budget you have for this item")
+7
+template: str = Field(description="Some template (figures or shapes or items)
+8
+that is in search")
+# pattern
+9
+collection: str = Field(description="From which collection the item has to be")
+10
+type: str = Field(description="The type of the item
+11
+i.e. clothing piece, shoes, hats etc.")
+12
+13
+@valid_prompt(
+14
+"Can you find me T-shirt for at least 10 usd but max 50 usd, I would like it to
+15
+have one of few patterns i.e. "
+16
+"first square pattern, second traditional bulgarian pattern or just a casual
+17
+flower pattern, be from the brand "
+18
+"Quick Silver, also from the autumn collection please")
+19
+@breaking_prompt("I want to buy shoes in size 23 with price range of 100 to 250 usd.",)
+20
+@tool_description("Tool which is underspecified and this leads to
+21
+misuse of the parameters of the function")
+22
+@tool("find-clothing", return_direct=True)
+23
+def find_clothes(sizes: List[int],
+24
+designer: str,
+25
+colors: List[str],
+26
+min_budget: int, max_budget: int,
+27
+template: str, collection: str, type: str):
+28
+"""
+29
+This tool is useful for filtering clothing items.
+30
+"""
+Figure 23: Synthetic tool with under-specified functionality documentation
+24
+
+
+----- [page 25] -----
+ToolFuzz - Automated Agent Tool Testing
+1
+class ContentInput(BaseModel):
+2
+content: str = Field("The content of a fairy tale which will be summarized")
+3
+4
+@breaking_prompt("""Can you shorten this message:
+5
+And then, all of a sudden, he said "Pop!" just as if a cork were coming
+6
+out of a bottle.
+7
+And Christopher Robin and Rabbit and all Rabbit's friends and relations
+8
+went head-over-heels backwards ... and on the top of them came
+9
+Winnie-the-Pooh-free!
+10
+11
+So, with a nod of thanks to his friends, he went on with his walk through
+12
+the forest, humming proudly to himself. But, Christopher Robin looked
+13
+after him lovingly, and said to himself, "Silly old Bear!"
+14
+""")
+15
+@tool_description(
+16
+"The tool has too concrete description on a common LLM task which
+17
+will result in the LLM not being able to "
+18
+"recognise when to call it")
+19
+@tool('summarize-fairy-tale-content', args_schema=ContentInput, return_direct=True)
+20
+def summarize_fairy_tale_content(content: str) -> str:
+21
+"""
+22
+Tool to summarize fairy tales given their content. This tool
+23
+can summarize the likes of: Hansel and Gretel,.
+24
+Snow White, The Golden Fish, Rapunzel, The little Mermaid and so on..
+25
+"""
+Figure 24: Synthetic tool with over-specified functionality description
+1
+class SearchMailInput(BaseModel):
+2
+keywords: str = Field(description="Keywords which will be used for
+3
+filtering (searching) the email inbox.")
+4
+# underspecified, not all enum values are listed for label
+5
+label: str = Field(description="Assigned label to the email.")
+6
+# labels are -> INBOX, SPAM, TRASH, UNREAD, STARRED, IMPORTANT
+7
+sender_email: str = Field(description="The email of the user who
+8
+sent the email.")
+9
+10
+11
+@valid_prompt("What mail did I get in SPAM from royalty@mail.ng about diamonds")
+12
+@breaking_prompt("Can you find my email with label finance which is
+13
+related to my taxes?")
+14
+@tool_description("Tool which will break because of
+15
+underspecified fields descriptions for enum values.")
+16
+@tool("search-mail", args_schema=SearchMailInput, return_direct=True)
+17
+def search_mail(keywords: str, label: str, sender_email: str):
+18
+"""
+19
+This tools can search your email box. Useful when you want to
+20
+find something from your emails!
+21
+"""
+Figure 25: Synthetic tool with under-specified arguments description
+25
+
+
+----- [page 26] -----
+ToolFuzz - Automated Agent Tool Testing
+Figure 26: Argument types used by tools
+Figure 27: Number of arguments used by tools
+26
+
+
+----- [page 27] -----
+ToolFuzz - Automated Agent Tool Testing
+A wrapper around PubMed. Useful for when you need to answer questions about medicine, health, and biomedical topics from biomedical literature, MEDLINE, life science journals, and online books. Input
+should be a search query.
+Figure 28: PubMed’s LangChain tool description
+A wrapper around Arxiv.org Useful for when you need to answer questions about Physics, Mathematics, Computer Science, Quantitative Biology, Quantitative Finance, Statistics, Electrical Engineering, and
+Economics from scientific articles on arxiv.org. Input should be a search query.
+Figure 29: ArXiv’s LangChain tool description
+27

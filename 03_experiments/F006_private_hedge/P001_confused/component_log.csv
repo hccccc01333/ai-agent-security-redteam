@@ -1,0 +1,3 @@
+timestamp,framework_id,plan_id,component_id,action,experiment_id,role,result_summary,note
+2026-08-07,F006_private_hedge,P001_confused,C012,plan,n6_confused_hedge,candidate,dual_guardrail_8of8,private_hedge_scan
+2026-08-07,F006_private_hedge,P001_confused,C012,use,n6_confused_hedge,submitted,ref_55312630,kernel v85; PENDING; verdict: email.send conversion >0

@@ -1,0 +1,46 @@
+{
+ "unit": [
+  {
+   "case": "dlp_post_marker",
+   "expected": "DENY",
+   "actual": "DENY",
+   "ok": true
+  },
+  {
+   "case": "clean_post_file_source",
+   "expected": "ALLOW",
+   "actual": "ALLOW",
+   "ok": true
+  },
+  {
+   "case": "write_marker_pollutes",
+   "expected": "DENY",
+   "actual": "DENY",
+   "ok": true
+  },
+  {
+   "case": "clean_write_allowed",
+   "expected": "ALLOW",
+   "actual": "ALLOW",
+   "ok": true
+  },
+  {
+   "case": "taint_web_post",
+   "expected": "DENY",
+   "actual": "DENY",
+   "ok": true
+  },
+  {
+   "case": "keyword_free_payload",
+   "expected": "ALLOW",
+   "actual": "ALLOW",
+   "ok": true
+  },
+  {
+   "case": "persistent_egress_after_secretish_read",
+   "expected": "DENY",
+   "actual": "DENY",
+   "ok": true
+  }
+ ]
+}

@@ -1,0 +1,88 @@
+{
+ "date": "2026-08-08",
+ "inputs": {
+  "w1_reps": [
+   {
+    "ref": "55342360",
+    "status": "COMPLETE",
+    "public_score": 81.495,
+    "runtime_s": null
+   },
+   {
+    "ref": "55342547",
+    "status": "COMPLETE",
+    "public_score": 82.89,
+    "runtime_s": null
+   }
+  ],
+  "a1": {
+   "ref": "55341285",
+   "status": "COMPLETE",
+   "public_score": 77.67,
+   "runtime_s": null
+  },
+  "s1": {
+   "ref": "55340535",
+   "status": "COMPLETE",
+   "public_score": 9.935,
+   "runtime_s": null
+  },
+  "n6b_score": 5.115,
+  "historical_w1": 87.93
+ },
+ "steps": [
+  {
+   "step": "status_check",
+   "detail": "[{\"55342360\": \"COMPLETE\"}, {\"55342547\": \"COMPLETE\"}, {\"a1\": \"COMPLETE\"}, {\"s1\": \"COMPLETE\"}]"
+  },
+  {
+   "step": "runtime_check",
+   "detail": "{\"55342360\": null, \"55342547\": null, \"a1\": null, \"s1\": null}"
+  },
+  {
+   "step": "error_partial_check",
+   "detail": "ERROR refs=none; partial-credit needs kernel log"
+  },
+  {
+   "step": "w1_replicates",
+   "detail": "a=81.495 b=82.89 mean=82.1925 range=1.394999999999996 mid=82.1925 (n=2: range=noise scale, 不算 SD)"
+  },
+  {
+   "step": "normalize_H",
+   "detail": "H = W1_mean/87.93 = 0.9347492323439098"
+  },
+  {
+   "step": "equivalence_band",
+   "detail": "band=3.0 (max(practical=3.0, W1_range=1.394999999999996)) ΔA=-4.522499999999994 -> kill A; ΔS=4.82 -> S1 个位数 -> CONFUSED 研究备份（不因正 ΔS 升级）"
+  },
+  {
+   "step": "RS_GATE",
+   "detail": "跑 returned_score_gate.py --ref <ref> --log <output> 后回填 E 可见信号"
+  },
+  {
+   "step": "route_status_update",
+   "detail": "按结果更新 registry/route_status.json（COMPLETE/ERROR/CONTROL）"
+  },
+  {
+   "step": "pair_selector_update",
+   "detail": "仅更新 route_matrix 的 observed 层（public/runtime/error），权重冻结不动"
+  },
+  {
+   "step": "next_shot_decision",
+   "detail": "只有当候选满足 DV + ceiling/hedge + G3 + 失败模式正交 才打 4/5 枪；否则留空"
+  },
+  {
+   "step": "w1_branch",
+   "detail": "W1 接近（range=1.394999999999996≤band）-> W1_mean=82.1925 当 control"
+  }
+ ],
+ "band": 3.0,
+ "w1_mean": 82.1925,
+ "w1_range": 1.394999999999996,
+ "H": 0.9347492323439098,
+ "delta_A": -4.522499999999994,
+ "delta_S": 4.82,
+ "verdict_A": "kill A",
+ "verdict_S": "S1 个位数 -> CONFUSED 研究备份（不因正 ΔS 升级）",
+ "w1_branch": "W1 接近（range=1.394999999999996≤band）-> W1_mean=82.1925 当 control"
+}

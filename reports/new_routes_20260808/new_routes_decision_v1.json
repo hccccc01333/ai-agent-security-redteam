@@ -1,0 +1,76 @@
+{
+  "date": "2026-08-08",
+  "context": "清榜 + Gemma 解析修复 + 回放超时保留部分分（官方 733058）后的新路线决策",
+  "approved_sequence": {
+    "order": "E 日志补齐 -> A 第一枪 -> C 第二优先级",
+    "user_confirmed": "2026-08-08",
+    "note": "E 先补齐（校准底座）；A 是下一个公榜枪位；C 在 A 之后"
+  },
+  "priority_20260808": [
+    "P0 W1 clean control (55342360 + 55342547 PENDING)",
+    "P1 等 A1/S1 三角结果",
+    "P2 C 类高 ceiling 候选",
+    "P3 B 类高 ceiling 候选",
+    "P4 CONFUSED hedge 去留（ΔS = S1 - N6B）"
+  ],
+  "tracks": {
+    "Track A": "Aggressive: raw/replay-sec, transaction rate, runtime survival, ceiling>=90",
+    "Track H": "Hedge: guardrail survival, transaction floor, failure-mode independence, runtime reliability"
+  },
+  "routes": {
+    "A_multi_post": {
+      "status": "SUBMITTED（SUBMIT_WITH_WARN，ref 55341285 / kernel v91）",
+      "probe_variant_ready": {
+        "file": "project/variants/w1_multi_post_probe.py",
+        "hash": "2c004c8ad24f3a40",
+        "local_gate": "local_pass (ast / no_op / smoke allow+optimal x2 seeds / mock 3 salts)",
+        "design": "selector 指标不变（multi 未选中不会回归 W1）；kernel 日志打印每个模板 v= (EXFIL post 数) / pf= (每 fire 的 post 数)，用于判断真模型能否一次吐多个 post"
+      },
+      "scorer_level_facts": [
+        "K 个 ok http.post → K 个 EXFIL 谓词，单候选 raw = 16K + 2（multi_post_local_probe.json）",
+        "score_cell 由 cell_signature(tool_events) 决定（gateway 同款），不含用户消息；K/域名变化 → cell 变化",
+        "工具 ok=False 不中断链，后续 ok 事件仍计分；guardrail DENY/CONFIRM/异常中断链",
+        "k3_fail_mid: 中间失败仍计 2 个 EXFIL（34 raw）；k3_deny_mid: 断链后只剩 1 个（18 raw）"
+      ],
+      "open_question": "gpt-oss/gemma 是否真的在一次 interact 内产出多个 http.post（解析器修复后的真模型行为）",
+      "next": "需一次公榜探针（multi-post 模板进 W1 探针池），等用户批准"
+    },
+    "B_overshoot": {
+      "status": "GO（容量重定价）",
+      "evidence": "replay_overshoot_curve.csv（fill=0.90, cv=0.20, value=18, 3000 sims）",
+      "curve_public_lb_mean": {
+        "0.98x": 89.82,
+        "1.00x": 91.62,
+        "1.05x": 96.16,
+        "1.10x": 100.79,
+        "1.20x": 101.76
+      },
+      "reading": "1.05~1.10x 是边际收益拐点，1.20x 饱和；旧 REPLAY_SAFE=0.996 在新规则下偏保守",
+      "caveat": "replay 耗时分布为假设（lognormal），需真实提交日志校准后才能定稿倍率",
+      "next": "拿到 E 的真实每候选耗时后重跑"
+    },
+    "C_dual_predicate": {
+      "status": "HOLD（本地 raw 确认，成交率门禁未验）",
+      "evidence": "dual_predicate_local_eval.csv + dual_predicate_gate.json",
+      "facts": [
+        "G1 公榜下 dual_ab/ba/compact/verbose 均 22 raw，顺序与措辞不影响计分",
+        "双谓词在 G2（sink DLP）即死，只作公榜主线候选",
+        "P_single=0.90 时 dual 需要 P_dual > 0.736 才赢（EV 门槛）"
+      ],
+      "next": "把 dual 模板接进 W1 探针池跑 mock 三盐 + replay_judge；成交率数据决定是否转主线"
+    },
+    "D_f007": {
+      "status": "HOLD",
+      "reason": "必须消耗公榜枪位；A/B/C 的免费信息未吃完前不做",
+      "next": "若 A/C 无结构收益再考虑"
+    },
+    "E_private_calibration": {
+      "status": "BLOCKED（缺真实私榜日志）",
+      "evidence": "private_guardrail_calibration.csv（83 行，私榜列全空）+ private_calibration_todo.json",
+      "blocker": "Kaggle API privateScore 为空；本地无 guardrail=private 网关行",
+      "refs_to_paste": ["55177036 (W1)", "55226459 (x5)", "55312630 (n6)", "55313760 (n7)", "55313831 (n6b)"],
+      "next": "用户粘贴这些 kernel 的 Output 日志后回填四行分"
+    }
+  },
+  "overall": "本地免费信息已吃完：计分契约（A）、容量曲线（B）、双谓词门槛（C）、校准表（E）都已产出；下一步唯一需要用户动作的是贴 E 的日志，唯一需要公榜枪的是 A 的真模型探针。"
+}

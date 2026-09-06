@@ -1,0 +1,710 @@
+
+
+----- [page 1] -----
+LLM STINGER: Jailbreaking LLMs using RL fine-tuned LLMs
+Piyush Jha, Arnav Arora, and Vijay Ganesh
+Georgia Institute of Technology, USA
+{piyush.jha, aarora362, vganesh}@gatech.edu
+Abstract
+We introduce LLM STINGER, a novel approach that lever-
+ages Large Language Models (LLMs) to automatically gen-
+erate adversarial suffixes for jailbreak attacks. Unlike tradi-
+tional methods, which require complex prompt engineering
+or white-box access, LLM STINGER uses a reinforcement
+learning (RL) loop to fine-tune an attacker LLM, generating
+new suffixes based on existing attacks for harmful questions
+from the HarmBench benchmark. Our method significantly
+outperforms existing red-teaming approaches (we compared
+against 15 of the latest methods), achieving a +57.2% im-
+provement in Attack Success Rate (ASR) on LLaMA2-7B-
+chat and a +50.3% ASR increase on Claude 2, both models
+known for their extensive safety measures. Additionally, we
+achieved a 94.97% ASR on GPT-3.5 and 99.4% on Gemma-
+2B-it, demonstrating the robustness and adaptability of LLM
+STINGER across open and closed-source models.
+Introduction
+Jailbreaking Large Language Models (LLMs) involve craft-
+ing inputs that lead safety-trained models to violate
+developer-imposed safety measures, producing unintended
+or harmful responses. One effective method for this is
+through suffix attacks, where specific strings are appended
+to the input to trigger undesired behavior. Suffix-based at-
+tacks have shown success against both white-box and black-
+box LLMs, offering a simpler, more efficient, and easily au-
+tomated alternative without the need for complex prompt
+engineering and human creativity to craft situations and
+role-playing templates (Zou et al. 2023). Although most
+of the existing suffix attacks have been patched because of
+safety training, we observed that modifications of those suf-
+fixes can still lead to successful jailbreak attempts. However,
+manually crafting these modifications or using a white-box
+gradient-based attacker to find new suffixes is laborious and
+time-consuming, limiting the scalability of such efforts.
+In this work, we introduce LLM STINGER, a tool that
+uses an LLM to automatically generate highly effective ad-
+versarial suffixes that can jailbreak safety-trained LLMs.
+By fine-tuning an attacker LLM in a reinforcement learn-
+ing (RL) loop, LLM STINGER generates new attack suffixes
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+LLM Stinger
+Environment
+PPO
+Concatenate
+Candidate
+Jailbreak Prompt
+Penalty
+Success?
+N
+Y
+Reward
+Output Jailbreak
+prompt
+Suffix string
+Response
+Attacker
+LLM
+(in training)
+User-supplied
+Victim LLM
+Harmful
+Question
+String
+similarity
+checker
+Judgment
+LLM
+Figure 1: Architecture Diagram of LLM STINGER
+for a set of harmful questions from the HarmBench bench-
+mark (Mazeika et al. 2024). This automated approach effi-
+ciently discovers new suffixes that bypass existing defenses,
+streamlining the process of crafting jailbreak attacks. The
+RL loop refines the attacker LLM with the help of reward
+signals that guide it toward more effective attacks. We com-
+pared LLM STINGER against 15 SOTA attack methods, and
+it outperformed all of them on attack success rate. For exam-
+ple, we were able to increase the ASR (+50.3%) on safety-
+trained closed-source models such as Claude.
+LLM STINGER
+Implementation Details of LLM STINGER. During train-
+ing, the attacker LLM takes as input the harmful question
+and seven publicly available suffixes (Zou et al. 2023) and
+is prompted to generate similar new suffixes. The generated
+suffix is appended to the harmful question (from the train-
+ing set) and sent to the victim LLM, requiring only black-
+box access to the model. The victim’s response is evalu-
+ated by the judgment model, which provides binary feed-
+back on whether the attack succeeded. Additionally, if the
+attack fails, a string similarity checker provides token-level
+feedback, allowing for more precise adjustments to the gen-
+erated suffixes. This mechanism evaluates how closely the
+generated suffix aligns with previously successful suffixes,
+penalizing deviations that stray too far from patterns known
+to bypass safety measures. This feedback is used to fine-
+arXiv:2411.08862v2 [cs.LG] 28 Jan 2026
+
+
+----- [page 2] -----
+Attack method /
+Victim LLM
+LLM STINGER
+(ours)
+GCG
+GCG-M
+GCG-T
+PEZ
+GBDA
+UAT
+AP
+SFS
+ZS
+PAIR
+TAP
+TAP-T
+Auto
+DAN
+PAP
+top5
+Human
+DR
+Llama2-7B-chat
+89.3
+32.1
+19.5
+15.9
+0.0
+0.0
+3.1
+19.5
+3.1
+0.4
+6.9
+5.0
+3.8
+0.0
+0.8
+0.1
+0.0
+Vicuna-7B
+93.08
+89.9
+83.9
+83.1
+17.6
+16.9
+18.2
+76.1
+52.8
+26.5
+66.0
+67.9
+78.0
+89.3
+15.6
+46.7
+20.1
+Claude 2
+52.2
+-
+-
+1.5
+-
+-
+-
+-
+-
+0.6
+1.9
+1.3
+0.0
+-
+0.1
+0.0
+0.0
+Claude 2.1
+26.4
+-
+-
+1.4
+-
+-
+-
+-
+-
+0.6
+2.5
+1.9
+0.0
+-
+0.1
+0.1
+0.0
+GPT 3.5 Turbo 0613
+88.67
+-
+-
+44.3
+-
+-
+-
+-
+-
+20.3
+52.8
+54.7
+78.6
+-
+10.6
+25.9
+16.4
+GPT 3.5 Turbo 1106
+94.97
+-
+-
+56.4
+-
+-
+-
+-
+-
+33.6
+42.1
+45.9
+60.4
+-
+11.9
+3.0
+36.5
+GPT 4 Turbo 1106
+80.50
+-
+-
+21.4
+-
+-
+-
+-
+-
+9.3
+41.5
+43.4
+81.8
+-
+11.9
+1.4
+6.9
+Table 1: Attack Success Rate on HarmBench (standard behaviours test split) for open-source and closed-source victim LLMs.
+Bold cells highlight the best-performing attack method for each victim LLM, while underlined cells indicate the second best.
+The dashed (-) cells indicate that the attack method is incompatible with the victim LLM, as it is a closed-source (black-box)
+LLM.
+tune the attacker LLM in an RL loop for 50 epochs using
+the Proximal Policy Optimization (PPO) algorithm, with the
+goal of improving the attack success rate over multiple it-
+erations (Figure 1). Successful suffixes are saved, and dur-
+ing evaluation on test set questions (disjoint from training
+set), we assess whether the attacker LLM can generate a
+question-specific harmful suffix or if any of the 38 newly
+generated suffixes can successfully trigger an attack.
+The string similarity checker plays a critical role in LLM
+STINGER’s adversarial suffix generation process by provid-
+ing fine-grained (dense) feedback at the token level. Its pri-
+mary function is to evaluate the degree of similarity be-
+tween the generated suffix and previously successful suffixes
+present in the prompt, guiding the attacker LLM to retain es-
+sential characteristics that have proven effective in bypass-
+ing safety mechanisms. By providing token-level feedback
+rather than relying solely on binary success or failure sig-
+nals, the string similarity checker improves the refinement
+process of suffix generation. This enables more precise ad-
+justments, speeding up finding suffixes that effectively bal-
+ance new attacks with resemblance to previously successful
+attacks. Additionally, this checker helps reduce the search
+space by pruning less promising candidates, making the
+search process more efficient and improving the overall suc-
+cess rate of generating adversarial suffixes.
+Implementation and Hardware Details
+The algorithm is implemented using a customized version of
+the Transformer Reinforcement Learning (TRL) library (von
+Werra et al. 2020), which is a comprehensive framework in-
+tegrated with Huggingface transformers (Wolf et al. 2020)
+for training transformer-based language models using re-
+inforcement learning (RL). We employ the Proximal Pol-
+icy Optimization (PPO) algorithm, frequently used in Rein-
+forcement Learning from Human Feedback (RLHF) (Yang
+et al. 2024; Ouyang et al. 2022; Stiennon et al. 2020), to fine-
+tune the language model. Since the original TRL library only
+supports scalar reward signals for RL fine-tuning, we modi-
+fied it to handle vector reward signals, enabling fine-grained
+feedback at the token level. All experiments were performed
+on a high-performance CentOS V7 cluster with Intel E5-
+2683 v4 Broadwell processors (2.10 GHz), 2 NVIDIA V100
+GPUs, and 64 GiB of memory.
+Experimental Setup
+We use the standard behavior benchmark from HarmBench
+that includes a train-test split, and the main metric for eval-
+uation is the attack success rate, a widely used standard in
+adversarial attack research (Mazeika et al. 2024). For the at-
+tacker model, we chose Gemma, an open-source LLM that
+allows for system prompt modifications and is not overly
+cautious in its responses, making it suitable for adversar-
+ial purposes. The judgment model is the HarmBench judg-
+ment LLM, selected because it outperforms other judgment
+models (GPT-4, Llama-Guard, AdvBench) on their man-
+ually labeled validation sets. To compare LLM STINGER
+with existing methods, we evaluate it against 15 popular
+red-teaming approaches and Direct Request (DR) baseline
+also used by HarmBench. Due to computational limitations,
+we select a subset of HarmBench victim LLMs. For open-
+source models, we focus on LLaMA-2, known for its ro-
+bustness to GCG and other attacks, as well as Vicuna. In the
+closed-source category, we test on GPT and Claude models,
+which have undergone extensive safety training with strong
+defenses at the system and model levels. Additional details
+are given below.
+HarmBench Benchmark
+HarmBench is a dataset of harmful behaviors and an evalu-
+ation pipeline meant to serve as a general evaluation frame-
+work for LLM red-teaming efforts. We use standard be-
+havior benchmarks from HarmBench, which cover a broad
+range of harms that public LLMs are typically aligned
+to avoid, such as those against OpenAI, Anthropic, and
+Meta policies. These are modeled after existing datasets,
+such as AdvBench and the TDC 2023 Red Teaming Track
+Dataset (Zou et al. 2023; Mazeika et al. 2024).
+Metric
+Attack Success Rate (ASR) is a metric used to evaluate the
+effectiveness of an attack method on a victim model. It rep-
+resents the percentage of harmful questions in the test set
+(post-modification) that are able to manipulate the model
+into producing unintended or harmful responses or bypass-
+ing safety measures leading to a successful jailbreak at-
+tack (Zou et al. 2023; Chao et al. 2023; Mehrotra et al.
+2023).
+
+
+----- [page 3] -----
+Attack Methods
+Here is a list of the various attack methods we use for com-
+parison:
+• GCG (Zou et al. 2023) optimizes tokens of adversarial
+suffix to maximize log probability of affirmative string
+being generated.
+• GCG-Multi (Zou et al. 2023) optimizes a single suffix for
+multiple user prompts (for a single LLM).
+• GCG-Transfer (Zou et al. 2023) extends GCG-Multi
+by optimizing across multiple open-source models, but
+applies the same attack suffixes discovered from these
+open-source models to closed-source models without fur-
+ther modification.
+• PEZ (Wen et al. 2024) optimizes tokens of adversarial
+suffix through nearest-neighbor projection.
+• GBDA (Guo et al. 2021) uses Gumbel-softmax distribu-
+tion to optimize tokens of adversarial suffix.
+• UAT (Wallace et al. 2019) uses Taylor approximation of
+first order around token embedding’s gradient to opti-
+mize tokens of adversarial suffix.
+• AutoPrompt (AP) (Shin et al. 2020) is a technique similar
+to GCG, but uses a different candidate selection strategy.
+• Stochastic Few-Shot (SFS) (Perez et al. 2022) creates test
+cases through few-shot generation with attacker LLM.
+• Zero-Shot (ZS) (Perez et al. 2022) creates test cases
+through zero-shot generation with attacker LLM.
+• PAIR (Chao et al. 2023) elicits harmful behavior through
+prompting and exploration from attacker LLM.
+• TAP (Mehrotra et al. 2023) is a technique similar to
+PAIR, but uses tree-structured prompting.
+• TAP-Transfer (Mehrotra et al. 2023) builds on TAP by
+transferring to other LLMs.
+• AutoDAN (Liu et al. 2023) starts with handcrafted
+prompts and uses hierarchical genetic algorithms to mod-
+ify these prompts.
+• PAP (Zeng et al. 2024) employs persuasive strategies to
+make the attacker LLM sound more convincing with each
+request.
+• Human Jailbreaks (Shen et al. 2023) are a set of hand-
+crafted jailbreaks.
+• Direct Requests serves as a baseline where the harmful
+request is provided with no modifications.
+Victim LLMs
+Due to computational limitations, we selected a subset of
+victim LLMs used by HarmBench. We selected Llama
+2 (Touvron et al. 2023), which has demonstrated strong re-
+silience against numerous attacks, including GCG. We also
+included Vicuna (Chiang et al. 2023), as it is fine-tuned from
+Llama. Among closed-source models, we chose GPT-3.5
+and GPT-4 APIs (Achiam et al. 2023), along with the Claude
+APIs (Bai et al. 2022), both of which incorporate defenses
+at both the system and model levels.
+Results
+Our method demonstrates a significant improvement in
+jailbreaking LLMs, particularly those that have undergone
+safety training, where other attack methods have struggled.
+As shown in Table 1, on Llama2-7B-chat, we observed the
+highest increase in Attack Success Rate (ASR), with our
+method achieving a +57.2% improvement compared to the
+next best approach. This substantial increase highlights the
+efficacy of our technique in bypassing the defenses of highly
+safety-trained models.
+When evaluating closed-source (black-box) models, our
+method increased the ASR by +50.3% on Claude 2, a model
+known for its rigorous safety training. In comparison, the
+next best method only reached a 1.9% ASR, further high-
+lighting the strength of our approach. On GPT-3.5, we
+achieved the highest ASR of 94.97%, showcasing the ro-
+bustness of our method across different closed-source mod-
+els. A key advantage of our approach is that it only requires
+black-box access to the victim model, unlike many of the
+attack methods in HarmBench, which need white-box ac-
+cess. This allows our method to support a wider range of
+models, as it doesn’t rely on internal model weights, making
+it more versatile and applicable to both open and closed-
+source LLMs. We also tested our method on Gemma-2B-
+it, the same model we use as our attacker LLM, which is
+not included in the HarmBench benchmark. Remarkably, we
+achieved an astounding ASR of 99.4% on this model using
+our method, further demonstrating its adaptability and effec-
+tiveness across different models. Since we use a judgment
+LLM classifier model to assess the success of each attack
+during feedback, we took extra steps to manually verify the
+outputs from the victim models. This ensures that our ap-
+proach is genuinely breaking through the model’s defences,
+rather than gaming the classifier.
+Related Work
+Research on adversarial attacks against large language mod-
+els (LLMs) has progressed rapidly, evolving from manually
+crafted prompts and white-box attacks to fully automated
+and scalable methods. As LLM deployment has expanded,
+so has the need to systematically understand, generate, and
+defend against jailbreak attacks. Prior work spans suffix-
+based optimization, role-playing and conversational attacks,
+evolutionary and fuzzing-based methods, large-scale eval-
+uations, and emerging defense strategies. We organize the
+related work into thematic categories below.
+Suffix-Based and Optimization-Driven Attacks
+Zou et al. (2023) introduce universal adversarial suffixes op-
+timized using greedy and gradient-based search techniques,
+demonstrating strong transferability across models. Geiping
+et al. (2024) generalize optimization-based attacks beyond
+alignment bypassing to include prompt extraction, misdi-
+rection, denial of service, and control flow manipulation,
+showing that safety training alone is insufficient to pre-
+vent coercive behaviors. Pasquini, Strohmeier, and Tron-
+coso (2024) propose Neural Exec, which uses optimization-
+driven prompt injection triggers that can bypass preprocess-
+
+
+----- [page 4] -----
+ing stages in Retrieval-Augmented Generation pipelines and
+evade blacklist-based defenses.
+Role-Playing and Conversational Jailbreak Attacks
+Tian et al. (2023) propose Evil Geniuses, a Red-Blue team
+inspired role-playing framework that autonomously gener-
+ates aggressive jailbreak prompts using GPT-3.5. Liu et al.
+(2023) introduce AutoDAN, which employs a hierarchical
+genetic algorithm with selection, crossover, and mutation
+operators to iteratively refine role-playing jailbreak prompts
+based on a fitness score. Chao et al. (2023) propose Prompt
+Automatic Iterative Refinement (PAIR), which uses an at-
+tacker LLM to generate role-playing prompts and a judg-
+ment LLM to provide feedback, forming a fully automated
+refinement loop.
+Tree-Based, Evolutionary, and Fuzzing Approaches
+Mehrotra et al. (2023) propose Tree of Attacks with Prun-
+ing (TAP), which uses tree-of-thought reasoning to itera-
+tively refine jailbreak prompts under black-box access con-
+straints, guided by an evaluator LLM. Yao et al. (2024) in-
+troduce FuzzLLM, a universal fuzzing framework that com-
+bines jailbreak constraints with prohibited queries to system-
+atically identify vulnerabilities across multiple LLMs. Chu
+et al. (2024) provide a comprehensive empirical evaluation
+of 13 jailbreak methods across multiple models and viola-
+tion categories, demonstrating that optimized and automated
+prompts consistently achieve high attack success rates.
+Evaluation and Measurement of Jailbreak
+Vulnerabilities
+Wang et al. (2023) analyze GPT-3.5 and GPT-4 across mul-
+tiple trust dimensions, observing that stronger models may
+be more susceptible to jailbreaking despite improved bench-
+mark performance. Wei, Haghtalab, and Steinhardt (2024)
+conduct a large-scale evaluation of suffix-based and role-
+playing jailbreaks, arguing that jailbreak vulnerabilities may
+be inherent to current safety training paradigms and are not
+resolved through model scaling alone. Sun et al. (2024) in-
+troduce TrustLLM, a benchmark spanning multiple trust di-
+mensions and models, finding correlations between trust-
+worthiness and utility. Xu et al. (2024) systematically com-
+pare attack and defense methods across several LLMs, high-
+lighting the importance of universal attacks and the role of
+special tokens in jailbreak success.
+Defense Strategies Against Jailbreak Attacks
+Zhou et al. (2024) propose the InContext Adversarial Game
+(ICAG), which formulates defense as an iterative adversar-
+ial interaction between attacker and defender agents without
+requiring fine-tuning. This agent-based framework enables
+adaptive defenses against evolving jailbreak strategies.
+Learning-Based Attack Generation and
+Reinforcement Learning
+Most prior jailbreak attacks either rely on white-box
+gradient-based optimization, prompt-level manipulations
+such as role-playing, or manually identified jailbreak pat-
+terns. In these approaches, the attacker model itself is not
+fine-tuned. In contrast, we are the first to fine-tune an at-
+tacker LLM to generate new and modified versions of suffix-
+based attacks. Our feedback-driven framework enables au-
+tomated attack evolution, introducing a new paradigm for
+adversarial LLM research.
+The use of language models within reinforcement learn-
+ing loops for vulnerability discovery has been explored in
+other domains. Jha et al. (2023) combine a BERT-based lan-
+guage model with reinforcement learning and binary feed-
+back to generate grammar-adhering mutations for web vul-
+nerability discovery. Our approach differs by leveraging a
+large language model to generate complete attack vectors
+and by using fine-grained symbolic feedback signals, draw-
+ing inspiration from Reinforcement Learning with Symbolic
+Feedback (Jha et al. 2024).
+Conclusions
+We present LLM Stinger (Jha, Arora, and Ganesh 2025),
+a new adversarial attack framework designed to jailbreak
+safety-trained LLMs LLMs by generating adversarial suf-
+fixes within an RL loop. Tested against 15 attack methods
+across 7 LLMs, LLM Stinger showed a 52.2% attack suc-
+cess rate (ASR) on Claude 2, a model specifically designed
+to prevent such attacks, compared to the next best method’s
+1.9% ASR. The system’s scalability and efficacy demon-
+strate its capability to break through various LLMs using
+only black-box API access.
+It is easy to see that the jailbreak attack search prob-
+lem addressed here is combinatorially hard, and hence naive
+methods won’t work. Our RL-based heuristic search tech-
+nique is effective as it is guided by feedback from a judg-
+ment LLM and a string similarity checker that helps prune
+the search space dramatically and focus its exploration on
+high-potential regions. As a result, it is not only able to dis-
+cover new attack suffixes efficiently but also adapts to the de-
+fenses of highly safety-trained models, thus demonstrating
+the practical strength of our approach. In the future, we plan
+to include support for additional token-level attack methods,
+conduct comparisons against more attack strategies and vic-
+tim LLMs, including multi-modal models, and explore addi-
+tional feedback mechanisms to enhance the effectiveness of
+the attacker LLMs.
+References
+Achiam, J.; Adler, S.; Agarwal, S.; Ahmad, L.; Akkaya, I.;
+Aleman, F. L.; Almeida, D.; Altenschmidt, J.; Altman, S.;
+Anadkat, S.; et al. 2023.
+Gpt-4 technical report.
+arXiv
+preprint arXiv:2303.08774.
+Bai, Y.; Kadavath, S.; Kundu, S.; Askell, A.; Kernion, J.;
+Jones, A.; Chen, A.; Goldie, A.; Mirhoseini, A.; McKinnon,
+C.; et al. 2022. Constitutional ai: Harmlessness from ai feed-
+back. arXiv preprint arXiv:2212.08073.
+Chao, P.; Robey, A.; Dobriban, E.; Hassani, H.; Pap-
+pas, G. J.; and Wong, E. 2023.
+Jailbreaking black box
+large language models in twenty queries.
+arXiv preprint
+arXiv:2310.08419.
+
+
+----- [page 5] -----
+Chiang, W.-L.; Li, Z.; Lin, Z.; Sheng, Y.; Wu, Z.; Zhang, H.;
+Zheng, L.; Zhuang, S.; Zhuang, Y.; Gonzalez, J. E.; et al.
+2023.
+Vicuna: An open-source chatbot impressing gpt-4
+with 90%* chatgpt quality. See https://vicuna. lmsys. org
+(accessed 14 April 2023), 2(3): 6.
+Chu, J.; Liu, Y.; Yang, Z.; Shen, X.; Backes, M.; and Zhang,
+Y. 2024.
+Comprehensive assessment of jailbreak attacks
+against llms. arXiv preprint arXiv:2402.05668.
+Geiping, J.; Stein, A.; Shu, M.; Saifullah, K.; Wen, Y.; and
+Goldstein, T. 2024. Coercing LLMs to do and reveal (al-
+most) anything. arXiv preprint arXiv:2402.14020.
+Guo, C.; Sablayrolles, A.; J´egou, H.; and Kiela, D. 2021.
+Gradient-based adversarial attacks against text transformers.
+arXiv preprint arXiv:2104.13733.
+Jha, P.; Arora, A.; and Ganesh, V. 2025. LLM Stinger: Jail-
+breaking LLMs Using RL Fine-Tuned LLMs (Student Ab-
+stract). In Proceedings of the AAAI Conference on Artificial
+Intelligence, volume 39, 29393–29395.
+Jha, P.; Jana, P.; Arora, A.; and Ganesh, V. 2024. RLSF:
+Reinforcement Learning via Symbolic Feedback.
+arXiv
+preprint arXiv:2405.16661.
+Jha, P.; Scott, J.; Ganeshna, J. S.; Singh, M.; and Ganesh, V.
+2023. BertRLFuzzer: A BERT and reinforcement learning
+based fuzzer. arXiv preprint arXiv:2305.12534.
+Liu, X.; Xu, N.; Chen, M.; and Xiao, C. 2023. Autodan:
+Generating stealthy jailbreak prompts on aligned large lan-
+guage models. arXiv preprint arXiv:2310.04451.
+Mazeika, M.; Phan, L.; Yin, X.; Zou, A.; Wang, Z.; Mu, N.;
+Sakhaee, E.; Li, N.; Basart, S.; et al. 2024. Harmbench: A
+standardized evaluation framework for automated red team-
+ing and robust refusal. arXiv preprint arXiv:2402.04249.
+Mehrotra, A.; Zampetakis, M.; Kassianik, P.; Nelson, B.;
+Anderson, H.; Singer, Y.; and Karbasi, A. 2023.
+Tree of
+attacks: Jailbreaking black-box llms automatically.
+arXiv
+preprint arXiv:2312.02119.
+Ouyang, L.; Wu, J.; Jiang, X.; Almeida, D.; Wainwright, C.;
+Mishkin, P.; Zhang, C.; Agarwal, S.; Slama, K.; Ray, A.;
+et al. 2022. Training language models to follow instructions
+with human feedback. Advances in neural information pro-
+cessing systems, 35: 27730–27744.
+Pasquini, D.; Strohmeier, M.; and Troncoso, C. 2024. Neural
+Exec: Learning (and Learning from) Execution Triggers for
+Prompt Injection Attacks. arXiv preprint arXiv:2403.03792.
+Perez, E.; Huang, S.; Song, F.; Cai, T.; Ring, R.; Aslanides,
+J.; Glaese, A.; McAleese, N.; and Irving, G. 2022. Red team-
+ing language models with language models. arXiv preprint
+arXiv:2202.03286.
+Shen, X.; Chen, Z.; Backes, M.; Shen, Y.; and Zhang, Y.
+2023. ” do anything now”: Characterizing and evaluating in-
+the-wild jailbreak prompts on large language models. arXiv
+preprint arXiv:2308.03825.
+Shin, T.; Razeghi, Y.; Logan IV, R. L.; Wallace, E.; and
+Singh, S. 2020. Autoprompt: Eliciting knowledge from lan-
+guage models with automatically generated prompts. arXiv
+preprint arXiv:2010.15980.
+Stiennon, N.; Ouyang, L.; Wu, J.; Ziegler, D.; Lowe, R.;
+Voss, C.; Radford, A.; Amodei, D.; and Christiano, P. F.
+2020.
+Learning to summarize with human feedback.
+Advances in Neural Information Processing Systems, 33:
+3008–3021.
+Sun, L.; Huang, Y.; Wang, H.; Wu, S.; Zhang, Q.; Gao, C.;
+Huang, Y.; Lyu, W.; Zhang, Y.; Li, X.; et al. 2024. Trustllm:
+Trustworthiness in large language models. arXiv preprint
+arXiv:2401.05561.
+Tian, Y.; Yang, X.; Zhang, J.; Dong, Y.; and Su, H. 2023.
+Evil geniuses: Delving into the safety of llm-based agents.
+arXiv preprint arXiv:2311.11855.
+Touvron, H.; Martin, L.; Stone, K.; Albert, P.; Almahairi, A.;
+Babaei, Y.; Bashlykov, N.; Batra, S.; Bhargava, P.; Bhosale,
+S.; et al. 2023. Llama 2: Open foundation and fine-tuned
+chat models. arXiv preprint arXiv:2307.09288.
+von Werra, L.; Belkada, Y.; Tunstall, L.; Beeching, E.;
+Thrush, T.; Lambert, N.; and Huang, S. 2020.
+TRL:
+Transformer Reinforcement Learning.
+https://github.com/
+huggingface/trl.
+Wallace, E.; Feng, S.; Kandpal, N.; Gardner, M.; and Singh,
+S. 2019. Universal adversarial triggers for attacking and an-
+alyzing NLP. arXiv preprint arXiv:1908.07125.
+Wang, B.; Chen, W.; Pei, H.; Xie, C.; Kang, M.; Zhang, C.;
+Xu, C.; Xiong, Z.; Dutta, R.; Schaeffer, R.; et al. 2023. De-
+codingTrust: A Comprehensive Assessment of Trustworthi-
+ness in GPT Models. In NeurIPS.
+Wei, A.; Haghtalab, N.; and Steinhardt, J. 2024. Jailbroken:
+How does llm safety training fail? Advances in Neural In-
+formation Processing Systems, 36.
+Wen, Y.; Jain, N.; Kirchenbauer, J.; Goldblum, M.; Geip-
+ing, J.; and Goldstein, T. 2024. Hard prompts made easy:
+Gradient-based discrete optimization for prompt tuning and
+discovery. Advances in Neural Information Processing Sys-
+tems, 36.
+Wolf, T.; Debut, L.; Sanh, V.; Chaumond, J.; Delangue, C.;
+Moi, A.; Cistac, P.; Rault, T.; Louf, R.; Funtowicz, M.; Davi-
+son, J.; Shleifer, S.; von Platen, P.; Ma, C.; Jernite, Y.; Plu, J.;
+Xu, C.; Scao, T. L.; Gugger, S.; Drame, M.; Lhoest, Q.; and
+Rush, A. M. 2020. Transformers: State-of-the-Art Natural
+Language Processing. In Proceedings of the 2020 Confer-
+ence on Empirical Methods in Natural Language Process-
+ing: System Demonstrations, 38–45. Online: Association for
+Computational Linguistics.
+Xu, Z.; Liu, Y.; Deng, G.; Li, Y.; and Picek, S. 2024. LLM
+Jailbreak Attack versus Defense Techniques–A Comprehen-
+sive Study. arXiv preprint arXiv:2402.13457.
+Yang, J.; Jin, H.; Tang, R.; Han, X.; Feng, Q.; Jiang, H.;
+Zhong, S.; Yin, B.; and Hu, X. 2024. Harnessing the power
+of llms in practice: A survey on chatgpt and beyond. ACM
+Transactions on Knowledge Discovery from Data, 18(6): 1–
+32.
+Yao, D.; Zhang, J.; Harris, I. G.; and Carlsson, M. 2024. Fuz-
+zllm: A novel and universal fuzzing framework for proac-
+tively discovering jailbreak vulnerabilities in large language
+
+
+----- [page 6] -----
+models. In ICASSP 2024-2024 IEEE International Confer-
+ence on Acoustics, Speech and Signal Processing (ICASSP),
+4485–4489. IEEE.
+Zeng, Y.; Lin, H.; Zhang, J.; Yang, D.; Jia, R.; and Shi, W.
+2024.
+How johnny can persuade llms to jailbreak them:
+Rethinking persuasion to challenge ai safety by humanizing
+llms. arXiv preprint arXiv:2401.06373.
+Zhou, Y.; Han, Y.; Zhuang, H.; Guo, T.; Guo, K.; Liang,
+Z.; Bao, H.; and Zhang, X. 2024.
+Defending Jailbreak
+Prompts via In-Context Adversarial Game. arXiv preprint
+arXiv:2402.13148.
+Zou, A.; Wang, Z.; Carlini, N.; Nasr, M.; Kolter, J. Z.; and
+Fredrikson, M. 2023.
+Universal and transferable adver-
+sarial attacks on aligned language models. arXiv preprint
+arXiv:2307.15043.

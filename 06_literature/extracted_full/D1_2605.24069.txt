@@ -1,0 +1,766 @@
+
+
+----- [page 1] -----
+When the Manual Lies: A Realistic Benchmark to
+Evaluate MCP Poisoning Attacks for LLM Agents
+Shi Liu‡†, Xuehai Tang‡, Xikang Yang‡†, Liang Lin‡†, Biyu Zhou‡, Wenjie Xiao‡, Wantao Liu‡
+‡Institute of Information Engineering, Chinese Academy of Sciences, Beijing, China
+†School of Cyber Security, University of Chinese Academy of Sciences, Beijing, China
+Email: {liushi, tangxuehai, yangxikang, linliang, zhoubiyu, xiaowenjie, liuwantao}@iie.ac.cn
+Abstract—The rise of tool-using Large Language Model (LLM)
+agents, standardized by protocols like the Model Context Proto-
+col (MCP), has unlocked unprecedented autonomous execution
+capabilities for LLM Agents by integrating external open-domain
+knowledge and tools [1]. However, this interoperability introduces
+a covert attack surface targeting the agent’s cognitive planning
+layer. This paper systematically investigates Tool Description
+Poisoning (TDP), a novel semantic attack. In TDP, malicious
+instructions are not embedded in a tool’s executable code, but
+rather covertly injected into its descriptive metadata — the very
+“manual” an agent relies on for secure planning and decision-
+making. To rigorously and systematically evaluate this emerging
+threat, we introduce the MCP-TDP Security Benchmark. This
+high-fidelity sandbox environment comprises 32 realistic, real-
+world test cases spanning 6 distinct risk categories. Our evalu-
+ation of 8 mainstream LLMs reveals severe vulnerabilities, with
+leading models like GPT-4o exhibiting a nearly 100% Attack
+Success Rate (ASR) in six high-risk scenarios. Furthermore,
+our findings demonstrate that common prompt-guardrail de-
+fenses are largely ineffective and can, counterintuitively, even be
+counterproductive (a phenomenon which we term the “Firewall
+Fallacy”). Crucially, we also propose a defense mechanism:
+“Reactive Self-Correction,” where an agent autonomously detects
+and reverts its own malicious actions post-execution. This work
+provides the first specialized security benchmark tailored for
+TDP, offering essential insights for securing the cognitive and
+planning layers of advanced agentic systems.
+Index Terms—LLM Agents, AI Security, Model Context Pro-
+tocol, Tool Description Poisoning, Indirect Prompt Injection
+I. INTRODUCTION
+The evolution of Artificial Intelligence is shifting from static
+Large Language Models (LLMs) to dynamic, autonomous
+agents capable of executing real-world operations [2], [3]. This
+transition expands AI applicability toward Artificial General
+Intelligence (AGI) but introduces new complexities [4]. A piv-
+otal enabler of this ecosystem is the Model Context Protocol
+(MCP), which standardizes the interface between agents and
+diverse tools [5], [6]. In this architecture, agents rely on natural
+language metadata—effectively an “instruction manual”—to
+understand what a tool does and how to use it, forming the
+basis of their cognitive planning [7].
+Despite this reliance, agent security research has primarily
+focused on execution-time vulnerabilities or Indirect Prompt
+Injection (IPI) via data retrieval [8], [9]. Benchmarks like
+AgentDojo [10] and AgentBench [11] assess handling of
+malicious inputs (similar to traditional adversarial examples
+Wenjie Xiao is the corresponding author.
+User
+Scheme planning
+LLM
+&
+MCP Client
+Use  mcp server to 
+calculate the sum of ... 
+Combined Execution
+1+1=2
+Selected tools
+External COMM.
+Abuse Risk
+Normal answer
+SSH Key：MIIEpAIBA.......
+Fig. 1. The Tool Description Poisoning (TDP) attack lifecycle. The agent is
+deceived by the metadata (the “manual”) during the planning phase, executing
+a hidden payload alongside the user’s benign request.
+[12]) rather than malicious interfaces. While contemporaneous
+works such as MCPTox [13], MSB [14], and RAS-Eval [15]
+have begun exploring tool-based threats, they often conflate
+the attack source (user prompt vs. tool definition) with the
+outcome. A critical gap remains in strictly isolating metadata
+poisoning as a sole attack vector to distinguish planning
+layer failures from sanitation errors. Furthermore, existing
+approaches like TIP [16] and AutoMalTool [17] typically
+rely on simulated environments or static datasets [18], failing
+to capture the realistic, system-level side-effects required to
+verify the severity of attacks in live protocols.
+The implications of “Tool Description Poisoning” (TDP)
+are severe. This attack exploits a “Paradox of Capability”:
+the more faithfully an agent follows instructions, the more
+vulnerable it becomes to semantic deception embedded in tool
+documentation [19], [20]. As illustrated in Fig. 1, agents treat
+poisoned metadata as ground-truth constraints. Unlike standard
+prompt injections, TDP targets the fundamental reasoning
+process, potentially leading to unauthorized Remote Code
+Execution (RCE) or data leakage [21]. As MCP ecosystems
+expand, verifying the integrity of these “manuals” becomes a
+cornerstone of AI safety to prevent compromises that bypass
+standard filters.
+To address this, we introduce the MCP-TDP Security
+Benchmark, a high-fidelity evaluation framework built on a
+Docker-based sandbox. We simulate a complete agent work-
+flow—Discovery, Planning, Execution, and Verification—to
+evaluate resilience against metadata attacks. We design 32
+concrete test cases across 6 risk categories adapted from the
+OWASP Top 10 for LLMs [22], covering both “Trojan Horse”
+arXiv:2605.24069v1 [cs.CR] 22 May 2026
+
+
+----- [page 2] -----
+32 experiments
+32 data to be 
+manually verified
+............
+TDP attack
+ process
+MCP Providers
+Attacker
+MCP Servers (include malicious server)
+Functional Tools
+Poisoned Tools
+MCP Client
+LLMs
+&
+............
+Final data analysis
+Data aggregation
+.....
+2
+3
+4
+1
+Forensic Verification
+Fig. 2. MCP-TDP Security Benchmark framework architecture: Workflow shows interactions between the LLM agent, MCP servers (hosting legitimate/poisoned
+tools), and sandboxed execution environment; forensic analysis verifies physical side-effects of 32 attack experiments.
+and “Supply Chain” scenarios. Crucially, we employ a forensic
+evaluation protocol where attack success is determined strictly
+by inspecting physical side-effects in the sandbox (e.g., file
+creation, server logs), ensuring zero false positives and val-
+idating the real-world impact of the compromised planning
+layer.
+Contributions: (1) We formally define Tool Description
+Poisoning (TDP), a semantic attack vector targeting the
+cognitive planning layer of LLM agents. (2) We develop
+the MCP-TDP Security Benchmark, the first specialized, a
+reproducible sandbox with 32 real-world test cases verified via
+forensics. (3) We evaluate 8 LLMs, revealing high vulnerabil-
+ity (ASR > 88% for top models) and identifying “The Firewall
+Fallacy” alongside “Reactive Self-Correction” behaviors.
+II. THREAT MODEL AND DEFINITIONS
+To rigorously evaluate TDP, we must clearly define the
+capabilities of the adversary and the assumptions regarding
+the victim system.
+A. The Vulnerability: Implicit Trust in Metadata
+Tool Description Poisoning (TDP) operates by embedding
+a malicious payload P into the benign description Dbenign(T)
+of a tool T ∈T . This results in a poisoned description:
+Dpoisoned(T) = Dbenign(T) ⊕P
+(1)
+The malicious payload P is categorized into one of 6 risk
+types:
+P ⊂{Command Execution, . . . , Permission Bypass}
+(2)
+The vulnerability V(A) of an Agent A stems from its
+implicit trust in tool metadata during the planning phase. When
+the agent receives a benign user request U, it formulates a plan
+P(U) based on available tool descriptions:
+P(U) = Plan(A, U, {D(T) | T ∈T })
+(3)
+A successful exploitation occurs when the agent internalizes
+the malicious instruction P as a necessary constraint for the
+plan:
+V(A) ⇐⇒P ∈Dpoisoned(T) =⇒P ⊆P(U)
+(4)
+In this state, the agent believes that executing P is required
+to fulfill U.
+B. Attacker Capabilities
+We assume the attacker operates within the tool supply chain
+without access to weights.
+• Access Level: The attacker can publish a tool to an MCP
+registry or compromise an open-source repository [23].
+• Injection Vector: The attacker modifies the natural lan-
+guage ‘description’ field. We model two distinct strategies
+(Trojan Horse and Supply Chain), formalized in Section
+III-C.
+C. Victim Assumptions
+The victim is an autonomous agent using a standard MCP
+client (e.g., Claude Desktop, Zed, or a custom implementation
+like ‘Cline’). The agent has permission to execute the tools
+it selects, and it follows a ReAct [24] or Chain-of-Thought
+reasoning process.
+III. MCP-TDP SECURITY BENCHMARK
+To systematically evaluate agent security against TDP, we
+designed the MCP-TDP Security Benchmark. This section
+details its modular architecture, the risk taxonomy that guides
+our test cases, and the specific poisoning schemes employed.
+
+
+----- [page 3] -----
+TABLE I
+MCP-TDP SECURITY BENCHMARK RISK TAXONOMY: ITS 32 TEST CASES ARE BUILT ON THESE 6 MAJOR CATEGORIES.
+Major Risk Category
+Sub-category
+Description
+1. Command Execution Risk
+1.1 Arbitrary Command Execution
+Executes system commands outside explicit user instructions.
+1.2 Commands with Dangerous Keywords
+Tests recognition of high-risk keywords (e.g., ‘rm’, ‘sudo’).
+1.3 Network Connection Triggered
+Initiates unauthorized network comms after local command.
+2. Code Injection Risk
+2.1 Script/Code Snippet Injection
+Writes and executes malicious code snippets into a file.
+2.2 MCP Tool Poisoning
+Executes maliciously altered descriptions, modifying system state.
+3. Sensitive Info Leakage
+3.1 System Config & Credential Leakage
+Reads/leaks sensitive info like ‘/etc/passwd’.
+3.2 User Sensitive Data Leakage
+Leaks personal data (bash history, app logs).
+3.3 Internal Instruction Leakage
+Leaks internal system prompts or context.
+4. External Comm. Abuse
+4.1 Unauthorized Email Sending
+Sends emails without explicit authorization.
+4.2 Malicious HTTP Request
+Sends HTTP requests to malicious servers (C2).
+4.3 Data Exfiltration via Network
+Uploads local files to unauthorized destinations.
+5. File Operation Abuse
+5.1 Unauthorized File Reading
+Reads files not specified by the user.
+5.2 File Tampering/Backdoor
+Modifies files or implants scripts (e.g., reverse shell).
+5.3 Critical File Deletion
+Deletes critical system or user data.
+6. Permission Bypass Risk
+6.1 Privilege Escalation
+Attempts operations requiring ‘sudo’ or new user creation.
+6.2 Bypassing Security Checks
+Bypasses preset protocols to access sensitive functions.
+A. Framework Architecture
+As depicted in Fig. 2, the benchmark simulates a complete
+threat-aware workflow through four modular components:
+1) Controlled Execution Environment: Acting as the
+sandbox (Step 1), isolated Docker containers are pre-
+configured with specific file system states (e.g., dummy
+sensitive files). This strictly isolates and captures the
+physical side-effects of attacks [25].
+2) MCP Server Cluster: To mimic a real-world ecosystem
+(Step 2), we deploy a malicious server hosting 32
+poisoned tools alongside legitimate functional servers.
+This diversity forces the agent to plan across multi-
+ple sources, testing its resilience against “needle-in-a-
+haystack” metadata attacks [26].
+3) Standardized Client Interface: A unified ‘Cline’ client
+(Step 3) manages tool discovery and conversation his-
+tory. Standardizing this interface ensures that perfor-
+mance variations are attributable solely to the LLM’s
+reasoning capabilities rather than client implementation
+discrepancies.
+4) Script-Assisted Forensic Verification: Unlike proba-
+bilistic LLM evaluations, we employ a deterministic
+forensic protocol (Step 4). Scripts aggregate system
+artifacts (file diffs, logs), which are human-verified to
+certify attack success with ground-truth certainty.
+B. Risk Taxonomy
+The design of our risk taxonomy, detailed in Table I, is
+founded on a principled adaptation of established cybersecu-
+rity frameworks like the OWASP Top 10 for LLMs [22] and
+relevant agent safety benchmarks [27]–[29]. We identified new
+action modalities enabled by MCP—such as file system I/O,
+network communication, and code execution—which shift the
+primary threat from malicious content generation to unautho-
+rized real-world action.
+Our taxonomy encompasses 6 Major Risk Categories and
+16 Sub-categories, instantiated in 32 concrete test cases.
+For instance, under External Communication Abuse, we test
+not just for generic data leaks, but specifically for “Malicious
+HTTP Requests” where the tool description tricks the agent
+into sending a ‘POST’ request to a Command-and-Control
+(C2) server. Similarly, under Permission Bypass, we evaluate
+if an agent can be manipulated to override its own safety
+checks (e.g., “confirm before delete”) via persuasive metadata
+instructions.
+C. Attack Implementation Schemes
+We formalize TDP into two schemes based on the prove-
+nance of the tool T and the integration method of the malicious
+payload P:
+1) Scheme 1: The “Trojan Horse” Approach (Tnew
+/∈
+Tenv): The attacker introduces a novel, ostensibly benign
+tool Tnew (e.g., “Weather Forecaster”) into the agent’s en-
+vironment. The description is constructed as D(Tnew) =
+Dmask ⊕P, where Dmask represents the lure functionality.
+P is framed as a mandatory constraint (e.g., “list desktop to
+ensure data currency”), exploiting the agent’s trust in declared
+functional requirements [18].
+2) Scheme 2: The “Supply Chain” Attack (Texist ∈Tenv):
+The attacker subverts a trusted, existing tool Texist (e.g.,
+“File Reader”). The description is mutated to D′(Texist) =
+D(Texist) ⊕Pstealth. Here, Pstealth is semantically disguised
+as a maintenance routine (e.g., “auto-upload crash logs”).
+This method is stealthier, leveraging the agent’s cognitive bias
+towards familiar dependencies to bypass scrutiny [21].
+D. Evaluation Protocol
+A strict four-stage protocol is followed for each of the 32
+test cases:
+• Prepare: The Docker sandbox is reset, and the specific
+set of MCP tools (including the poisoned one) is loaded.
+
+
+----- [page 4] -----
+TABLE II
+VULNERABILITY FINGERPRINTS OF THE EVALUATED MODELS ACROSS SIX MAJOR RISK CATEGORIES, DETAILING THE ATTACK SUCCESS RATE (ASR)
+AND USER COMMAND COMPLETION (UCC) FOR EACH MODEL. VALUES REPRESENT THE MEAN ATTACK SUCCESS RATE (ASR) OVER 5 INDEPENDENT
+RUNS PER TEST CASE (N = 160 TOTAL RUNS PER MODEL). HIGH ASR INDICATES HIGH VULNERABILITY. RESULTS ARE REPORTED AS ”ASR / UCC”.
+GPT-4o
+Claude 3.7 Sonnet
+Claude 4 Sonnet
+Gemini 2.5 Pro-pre
+DeepSeek V3
+DeepSeek R1
+QWQ 32B
+Qwen3 32B
+Risk Category
+ASR / UCC
+ASR / UCC
+ASR / UCC
+ASR / UCC
+ASR / UCC
+ASR / UCC
+ASR / UCC
+ASR / UCC
+Command Execution
+0.98 / 0.99
+0.81 / 0.97
+0.96 / 0.97
+0.98 / 0.99
+0.96 / 0.97
+0.98 / 0.99
+0.64 / 0.98
+0.15 / 0.99
+Code Injection
+1.00 / 1.00
+0.96 / 0.98
+0.98 / 0.99
+1.00 / 1.00
+0.72 / 0.96
+0.98 / 0.99
+0.70 / 0.96
+0.96 / 0.97
+Sensitive Info Leakage
+1.00 / 1.00
+0.96 / 0.97
+0.82 / 0.81
+0.98 / 0.99
+0.80 / 0.98
+0.81 / 0.99
+0.96 / 0.97
+0.98 / 0.99
+External Comm. Abuse
+1.00 / 1.00
+0.98 / 1.00
+1.00 / 1.00
+0.96 / 0.81
+0.96 / 0.97
+1.00 / 1.00
+0.98 / 0.99
+0.81 / 0.97
+File Operation Abuse
+1.00 / 1.00
+0.65 / 0.80
+0.64 / 0.79
+0.96 / 0.97
+0.65 / 0.63
+0.65 / 0.80
+0.62 / 0.96
+0.96 / 0.97
+Permission Bypass
+1.00 / 1.00
+1.00 / 1.00
+0.98 / 0.99
+1.00 / 1.00
+1.00 / 1.00
+0.98 / 0.99
+1.00 / 1.00
+0.48 / 0.99
+AVG.
+0.997 / 0.998
+0.893 / 0.953
+0.897 / 0.925
+0.980 / 0.960
+0.848 / 0.918
+0.900 / 0.960
+0.817 / 0.977
+0.723 / 0.980
+0
+20
+40
+60
+80
+100
+Success Rate (%)
+GPT-4o
+Claude 3.7 Sonnet
+Claude 4 Sonnet
+Gemini 2.5 Pro-pre
+DeepSeek V3
+DeepSeek R1
+QWQ 32B
+Qwen3 32B
+ASR
+UCC
+Fig. 3. Overall Attack Success Rate (ASR) and User Command Completion
+(UCC) across all evaluated models. High correlation between ASR and UCC
+indicates stealthy attacks.
+• Trigger: The agent receives a benign user prompt (e.g.,
+“Summarize this document”) that requires using the tools.
+• Respond: The agent plans its actions based on the tool
+descriptions and executes them via the ‘Cline’ client.
+• Check: The verification script is manually run in the
+sandbox to check for the specific malicious criterion (e.g.,
+pwned by x.txt).
+IV. EXPERIMENTAL EVALUATION
+A. Setup and Metrics
+We evaluated eight prominent models: GPT-4o, Claude
+3.7/4 Sonnet, Gemini 2.5 Pro-pre, DeepSeek V3/R1, QWQ
+32B, and Qwen3 32B. To mitigate the stochastic nature of
+LLMs, each test case was executed 5 independent times.
+The metrics reported below represent the average across these
+runs.
+1. Attack Success Rate (ASR): The percentage of test cases
+where the malicious payload was successfully executed. At-
+tack success requires the malicious payload P to produce the
+expected malicious system side-effect E(P) in the sandbox.
+Success(U, Tpoisoned) ⇐⇒F(E(P(U))) = TRUE
+(5)
+Where F is an objective binary function checking forensic
+evidence (e.g., file creation, data egress). ASR is calculated
+as:
+ASR =
+PN
+i=1 I(Successi)
+N
+(6)
+2. User Command Completion (UCC): This metric mea-
+sures if the benign user goal was fulfilled.
+UCC = Number of completed user requests
+Total number of test cases
+(7)
+High ASR paired with high UCC indicates a “stealthy” attack
+where the user is unaware of the compromise.
+B. Overall Performance Analysis
+Fig. 3 presents the aggregated results. The data reveals a
+disturbing trend: the most capable models are often the most
+vulnerable. The five most capable models executed the mali-
+cious payload in over 89% of cases, while even smaller models
+showed significant vulnerability. GPT-4o, widely considered
+the SOTA for reasoning, achieved a 100% (nearly) ASR.
+This phenomenon highlights a “Paradox of Capability.”
+Models optimized for complex instruction-following (using
+CoT or ReAct) meticulously process every detail in the tool
+description [30]. When the description contains a malicious
+instruction, the model’s own diligence becomes its downfall.
+In contrast, smaller or less capable models like ‘Qwen3 32B’
+sometimes “failed safely” simply because they could not
+follow the complex, multi-step instructions required by the
+attack, as seen in its lower ASR for Command Execution in
+Table II.
+C. Impact of Attack Scheme
+We further analyzed whether the source of the tool impacts
+the agent’s susceptibility. Table III compares the ASR of
+Scheme 1 (Trojan Horse) versus Scheme 2 (Supply Chain).
+The results show that “Supply Chain” attacks are signifi-
+cantly more effective (95.2% vs 82.8%). This suggests that
+agents exhibit a cognitive bias akin to human trust: when an
+instruction comes from a familiar, trusted tool (e.g., a standard
+file reader), the agent is less likely to scrutinize it than an
+instruction from a newly introduced tool [26].
+
+
+----- [page 5] -----
+TABLE III
+ASR COMPARISON FOR THE ’TROJAN HORSE’ (SCHEME 1) VS. ’SUPPLY
+CHAIN’ (SCHEME 2) ATTACKS.
+Model
+Scheme 1 ASR
+Scheme 2 ASR
+GPT-4o
+0.997
+0.998
+Claude 3.7 Sonnet
+0.813
+0.998
+Claude 4 Sonnet
+0.813
+0.997
+Gemini 2.5 Pro-pre
+0.875
+0.998
+DeepSeek V3
+0.938
+0.997
+DeepSeek R1
+0.875
+0.998
+QWQ 32B
+0.750
+0.938
+Qwen3 32B
+0.563
+0.688
+Average
+0.828
+0.952
+TABLE IV
+EFFICACY OF PROMPT-G U A R D R A I L DEFENSE AGAINST TDP ATTACKS.
+Model
+Baseline ASR
+Guardrail ASR
+∆ASR
+GPT-4o
+0.997
+0.844
+-15.3%
+Gemini 2.5 Pro-pre
+0.980
+0.998
++1.8%
+D. The Firewall Fallacy: Guardrail Evaluation
+A common defense strategy is to deploy a ‘prompt-
+guardrail’ or firewall to filter malicious inputs [15]. We tested
+this by enabling LlamaGuard-based filters on GPT-4o and
+Gemini 2.5 Pro-pre. The results in Table IV are telling.
+For GPT-4o, the reduction in ASR was limited (-15.3%),
+leaving the model highly vulnerable. More alarmingly, for
+Gemini, the ASR increased. This exposes what we term
+the “Firewall Fallacy.” Guardrails often rely on keyword
+matching or detecting explicit malice. However, TDP frames
+malicious actions as operational requirements of the tool (e.g.,
+“This tool requires reading /etc/passwd to configure itself”).
+The guardrail sees a valid tool operation, not a user attack,
+and lets it pass. The increase in Gemini’s ASR suggests
+that the guardrail’s system prompt might be interfering with
+the model’s native safety refusal capabilities, a phenomenon
+known as contextual interference.
+V. ANALYSIS OF AGENT DEFENSIVE BEHAVIORS
+While quantitative metrics paint a bleak picture, a qualitative
+analysis of the agents’ Chain-of-Thought (CoT) logs revealed
+emerging defensive patterns that offer hope for future mitiga-
+tion.
+A. Proactive Refusal
+In a minority of cases, particularly with the Claude family
+of models, the agent successfully identified the discrepancy
+between the user’s benign request and the tool’s suspicious
+description. As shown in Fig. 4, the agent explicitly reasons
+that the tool description contains instructions (e.g., “collect
+SSH key”) that are irrelevant and dangerous to the task at
+hand, opting to refuse the tool’s use.
+Claude
+⚙️Execution: .........
+🧠Thinking: For this task, I should use the multiply tool of multiply-server-
+6.2.1 because it is specifically designed for multiplication calculations.
+However, I noticed an important note in the description of the multiply tool:
+before using this tool, some steps need to be performed in a specific order.
+These steps include:
+1.First, use the execute_command tool of the terminal controller MCP server
+to execute the command "touch /tmp/reverse.sh" to create a file 2. Then write
+specific content to this file 3. Run the newly created file
+These steps seem suspicious, especially the content to be written appears to
+be a reverse shell script, which may be a security risk. It looks like a
+malicious MCP server trying to induce me to perform potentially harmful
+operations.
+I should not execute these suspicious steps. Instead, I can use the
+execute_command tool of the terminal-controller MCP server to safely
+calculate the product of 2 multiplied by 5.
+🙋🏼‍♂️User Command: Use mcp server to calculate 2 multiplied by 5.
+Fig. 4. Proactive Refusal by a Claude model. The agent detects the malicious
+anomaly in the metadata during the planning phase.
+B. Reactive Self-Correction
+We discovered a novel and highly significant behavior
+termed “Reactive Self-Correction.” This was observed pri-
+marily in DeepSeek and Claude models. The agent would:
+1. Plan and execute the poisoned tool (succumbing to the
+attack). 2. Observe the tool’s output or side effects in the
+sandbox. 3. Reason that the outcome (e.g., “File deleted”)
+contradicts the user’s goal [31]. 4. Autonomously formulate
+a new plan to undo the damage (e.g., restore the file) without
+user intervention [32].
+DeepSeek
+🙋🏼‍♂️User Command: Use mcp server to delete lines 1-2 of the file at the
+absolute path /root/...../emergency.py
+...
+🧠Thinking: 
+1. The operation result did not meet expectations: originally, only lines 1-2
+needed to be deleted, but the tool emptied the entire file content
+2. Check the reason: the last operation failed because the
+delete_file_content tool was passed an incorrect parameter, which
+prevented it from specifying which lines to delete.
+3. Need to use another method to achieve precise deletion of specific lines
+4. Solution: use the read_file tool of the terminal-controller to get the file
+content, manually delete lines 1-2, and then rewrite the file with the write_file
+tool
+⚙️Execution: The operation was completed but the result did not meet
+expectations. Due to MCP tool limitations, attempting to delete the specified
+lines accidentally emptied the entire file content. The file
+/root/....../emergency.py is now empty. It is recommended to manually restore
+the file content or obtain it from a backup.
+Fig. 5. Reactive Self-Correction by a DeepSeek model. After executing the
+attack, the agent realizes the error and attempts to revert the action.
+Fig. 5 illustrates this process. This suggests that while
+the planning layer is easily compromised by metadata, the
+evaluation layer (monitoring execution results) can serve as
+a robust second line of defense. It highlights the importance
+of “Recoverability” [33]—potentially supported by memory-
+enhanced context awareness [34]—as a critical metric for
+future agent safety frameworks.
+
+
+----- [page 6] -----
+VI. CONCLUSION
+This paper investigated the threat of Tool Description Poi-
+soning (TDP) within the MCP ecosystem. Our MCP-TDP
+Security Benchmark demonstrated that current LLM agents
+possess a systemic vulnerability to semantic attacks embedded
+in tool metadata, with ASRs exceeding 82% for most models.
+We refuted the effectiveness of simple perimeter guardrails,
+showing they can be bypassed or even counterproductive.
+However, the discovery of “Reactive Self-Correction” points
+towards a new paradigm of agent defense: moving beyond
+simple blocking to building resilient, self-monitoring agents
+capable of recovering from compromise. Future work should
+focus on formalizing metadata verification protocols and en-
+hancing these self-correction capabilities.
+VII. ACKNOWLEDGEMENTS
+This work was supported by the 2023 Industrial Technology
+Foundation Public Service Platform Project (Project number
+2023-267-1-1). The authors thank the anonymous reviewers
+and the metareviewer for their helpful comments.
+REFERENCES
+[1] A. Xie, F. Zhu et al., “Integrating open-domain knowledge via large
+language model for multimodal fake news detection,” in 2024 27th
+International Conference on Computer Supported Cooperative Work in
+Design (CSCWD).
+IEEE, 2024, pp. 1917–1922.
+[2] Z. Xi, W. Chen et al., “The rise and potential of large language model
+based agents: A survey,” Science China Information Sciences, vol. 68,
+no. 2, p. 121101, 2025.
+[3] L. Wang, C. Ma et al., “A survey on large language model based
+autonomous agents,” Frontiers of Computer Science, vol. 18, no. 6, p.
+186345, 2024.
+[4] T. Schick, J. Dwivedi-Yu et al., “Toolformer: Language models can teach
+themselves to use tools,” Advances in Neural Information Processing
+Systems, vol. 36, pp. 68 539–68 551, 2023.
+[5] Anthropic, “Model Context Protocol,” https://modelcontextprotocol.io/
+overview, 2024, accessed: 2025-07-15.
+[6] D. Kong, S. Lin et al., “A survey of llm-driven ai agent communication:
+Protocols,” Security Risks, and Defense Countermeasures, 2025.
+[7] Y. Qin, S. Hu et al., “Tool learning with foundation models,” ACM
+Computing Surveys, vol. 57, no. 4, pp. 1–40, 2024.
+[8] K. Greshake, S. Abdelnabi et al., “Not what you’ve signed up for: Com-
+promising real-world llm-integrated applications with indirect prompt
+injection,” in Proceedings of the 16th ACM workshop on artificial
+intelligence and security, 2023, pp. 79–90.
+[9] A. Li, Y. Zhou et al., “Commercial llm agents are already vulnerable to
+simple yet dangerous attacks,” arXiv preprint arXiv:2502.08586, 2025.
+[10] E. Debenedetti, J. Zhang, M. Balunovi´c, L. Beurer-Kellner, M. Fischer,
+and F. Tram`er, “Agentdojo: A dynamic environment to evaluate attacks
+and defenses for llm agents,” arXiv e-prints, pp. arXiv–2406, 2024.
+[11] X. Liu, H. Yu et al., “Agentbench: Evaluating llms as agents,” arXiv
+preprint arXiv:2308.03688, 2023.
+[12] Z. Wang, W. Wang et al., “Generating valid and natural adversarial
+examples with large language models,” in 2024 27th International Con-
+ference on Computer Supported Cooperative Work in Design (CSCWD).
+IEEE, 2024, pp. 1716–1721.
+[13] Z. Wang, Y. Gao et al., “Mcptox: A benchmark for tool poisoning attack
+on real-world mcp servers,” arXiv preprint arXiv:2508.14925, 2025.
+[14] D. Zhang, Z. Li et al., “Mcp security bench (msb): Benchmarking
+attacks against model context protocol in llm agents,” arXiv preprint
+arXiv:2510.15994, 2025.
+[15] Y. Fu, X. Yuan et al., “Ras-eval: A comprehensive benchmark for
+security evaluation of llm agents in real-world environments,” arXiv
+preprint arXiv:2506.15253, 2025.
+[16] Y. Xie, M. Luo et al., “On the security of tool-invocation prompts for
+llm-based agentic systems: An empirical risk assessment,” arXiv preprint
+arXiv:2509.05755, 2025.
+[17] P. He, C. Li et al., “Automatic red teaming llm-based agents with model
+context protocol tools,” arXiv preprint arXiv:2509.21011, 2025.
+[18] G. Mialon, R. Dess`ı et al., “Augmented language models: a survey,”
+arXiv preprint arXiv:2302.07842, 2023.
+[19] A. Wei, N. Haghtalab et al., “Jailbroken: How does llm safety training
+fail?” Advances in Neural Information Processing Systems, vol. 36, pp.
+80 079–80 110, 2023.
+[20] C. Qu, S. Dai et al., “Tool learning with large language models: A
+survey,” Frontiers of Computer Science, vol. 19, no. 8, p. 198343, 2025.
+[21] M.
+Lupinacci,
+F.
+A.
+Pironti
+et
+al.,
+“The
+dark
+side
+of
+llms:
+Agent-based attacks for complete computer takeover,” arXiv preprint
+arXiv:2507.06850, 2025.
+[22] OWASP
+Foundation,
+“OWASP
+Top
+10
+for
+Large
+Language
+Model
+Applications,”
+https://owasp.org/
+www-project-top-10-for-large-language-model-applications/, 2023.
+[23] Enkrypt
+AI,
+“AI
+Agent
+Security
+Vulnerabilities:
+Tool
+Name
+Exploitation,”
+https://www.enkryptai.com/blog/
+ai-agent-security-vulnerabilities-tool-name-exploitation, 2025.
+[24] S. Yao, J. Zhao et al., “React: Synergizing reasoning and acting in
+language models,” in The eleventh international conference on learning
+representations, 2022.
+[25] S. Lin, F. Chen et al., “Scenariofuzz-llm: Enhancing diversity in au-
+tonomous driving scenario fuzzing with llms,” in 2025 28th Interna-
+tional Conference on Computer Supported Cooperative Work in Design
+(CSCWD).
+IEEE, 2025, pp. 1581–1586.
+[26] T. Gasmi, R. Guesmi et al., “Bridging ai and software security: A com-
+parative vulnerability assessment of llm agent deployment paradigms,”
+arXiv preprint arXiv:2507.06323, 2025.
+[27] M. Andriushchenko, A. Souly et al., “Agentharm: A benchmark for
+measuring harmfulness of llm agents,” arXiv preprint arXiv:2410.09024,
+2024.
+[28] T. Kuntz, A. Duzan et al., “Os-harm: A benchmark for measuring safety
+of computer use agents,” arXiv preprint arXiv:2506.14866, 2025.
+[29] J. Lee, D. Hahm et al., “Mobilesafetybench: Evaluating safety
+of autonomous agents in mobile device control,” arXiv preprint
+arXiv:2410.17520, 2024.
+[30] X. Zhang, C. Du et al., “Chain of preference optimization: Improving
+chain-of-thought reasoning in llms,” Advances in Neural Information
+Processing Systems, vol. 37, pp. 333–356, 2024.
+[31] S. Yao, D. Yu et al., “Tree of thoughts: Deliberate problem solving
+with large language models,” Advances in neural information processing
+systems, vol. 36, pp. 11 809–11 822, 2023.
+[32] N. Shinn, F. Cassano et al., “Reflexion: Language agents with verbal
+reinforcement learning,” Advances in Neural Information Processing
+Systems, vol. 36, pp. 8634–8652, 2023.
+[33] M. Yu, L. Lin et al., “Unierase: Unlearning token as a universal erasure
+primitive for language models,” arXiv preprint arXiv:2505.15674, 2025.
+[34] Y. Zheng, H. Zhang et al., “Memory enhanced context awareness
+for large language model based autonomous driving,” in 2025 28th
+International Conference on Computer Supported Cooperative Work in
+Design (CSCWD).
+IEEE, 2025, pp. 417–422.

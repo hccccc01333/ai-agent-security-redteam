@@ -1,0 +1,53 @@
+{
+  "meta": {
+    "pre_registered": "2026-08-08",
+    "frozen_until": "A1/S1/W1 三角结果返回并跑完 result_analysis_pipeline.py",
+    "rule": "结果回来前不得修改本表；也不得修改 pair_selector 权重",
+    "scale_note": "判定单位 = 公榜 0-1000 分（与旧 87.930 同刻度，仅作刻度参照，不作回归目标）"
+  },
+  "practical_min_effect": 3.0,
+  "noise_band_formula": "noise_band = max(practical_min_effect, W1_range)",
+  "decisions": [
+    {
+      "comparison": "A1 vs W1_new",
+      "delta": "ΔA = A1 - W1_mean",
+      "rows": [
+        {"condition": "ΔA > +noise_band", "verdict": "multi-post 升级为 aggressive 主线（优化效率/稳定性，不改 wording）"},
+        {"condition": "|ΔA| ≤ noise_band", "verdict": "NO CLEAR EFFECT -> A family 暂停，不做点对点微调"},
+        {"condition": "ΔA < -noise_band", "verdict": "kill A（多输出结构损伤成交轴）"}
+      ]
+    },
+    {
+      "comparison": "S1 vs N6B",
+      "delta": "ΔS = S1 - N6B(5.115)",
+      "rows": [
+        {"condition": "ΔS > +noise_band 且 S1 > 10", "verdict": "CONFUSED 保留 hedge 身份"},
+        {"condition": "|ΔS| ≤ noise_band 或 S1 仍个位数(≤10)", "verdict": "NO CLEAR EFFECT -> CONFUSED 降为研究备份，不再消耗提交额度"},
+        {"condition": "ΔS < -noise_band", "verdict": "CONFUSED 降级研究备份"}
+      ]
+    },
+    {
+      "comparison": "W1 replicates（55342360 vs 55342547）",
+      "delta": "W1_range = |w1a - w1b|, W1_mean, W1_mid",
+      "rows": [
+        {"condition": "W1_range ≤ noise_band", "verdict": "new harness reasonably stable -> W1_new = W1_mean 当 control"},
+        {"condition": "W1_range > noise_band", "verdict": "环境噪声不可忽略 -> 以 W1 区间为基准，不做单点比较；必要时次日补第 3 个 control"},
+        {"condition": "任一 W1 ERROR", "verdict": "W1 不是 deterministic control -> route matrix 的 reliability 升权，先修可靠性再谈差分"}
+      ]
+    }
+  ],
+  "normalization": "H = W1_mean / 87.930（仅历史刻度参照；旧实验一律 historical reference）",
+  "result_order": [
+    "status check",
+    "runtime check",
+    "error / partial-credit check",
+    "W1 replicate comparison (mean/range/mid)",
+    "normalize against W1 mean (H)",
+    "apply equivalence band (ΔA / ΔS)",
+    "RS-GATE",
+    "route status update",
+    "pair selector update",
+    "next-shot decision",
+    "W1×2 三分支判定"
+  ]
+}

@@ -1,0 +1,6 @@
+timestamp,framework_id,plan_id,component_id,action,experiment_id,role,result_summary,note
+2026-08-06,F004,P003_multi_objective_select,C011,plan,n5_multi_objective,candidate,weighted_family_selection,parent=N3; score x novelty
+2026-08-06,F004,P003_multi_objective_select,C011,plan,n5_multi_objective,local_judge,family>=2_3salts,reuse n3_archive_check --variant
+2026-08-06,F004,P003_multi_objective_select,C011,use,n5_multi_objective,local_judge,archive_ok_3salts,3 salts 2000 cands / 4 fam; distribution weighted (low-conversion fams decay)
+2026-08-06,F004,P003_multi_objective_select,C011,use,n5_multi_objective,candidate,local_pass,AST+no_op+smoke+replay judge pass; registry appended
+2026-08-06,F004,P003_multi_objective_select,C011,use,n5_multi_objective,submitted,ref_55301801,kernel v84; PENDING; verdict: >=N3 promoted else back W1

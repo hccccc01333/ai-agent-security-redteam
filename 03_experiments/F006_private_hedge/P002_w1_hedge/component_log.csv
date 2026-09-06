@@ -1,0 +1,4 @@
+timestamp,framework_id,plan_id,component_id,action,experiment_id,role,result_summary,note
+2026-08-07,F006_private_hedge,P002_w1_hedge,C013,plan,n7_w1_confused_hedge,candidate,ratio_0.10,parent=W1 + n6 hedge templates
+2026-08-07,F006_private_hedge,P002_w1_hedge,C013,use,n7_w1_confused_hedge,local_judge,hedge_3salts,2000 cands; hedge 8.2% / W1 91.8% stable (HEDGE_EVERY=11)
+2026-08-07,F006_private_hedge,P002_w1_hedge,C013,use,n7_w1_confused_hedge,candidate,local_pass,AST+no_op+smoke+replay judge; wall 300s ok; standby until n6 verdict

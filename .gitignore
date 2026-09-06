@@ -1,0 +1,41 @@
+# Data / logs not bundled
+data/
+_logs/
+.logs/
+*.log
+
+# Cache / build
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Local scratch
+_tmp*/
+_kout*/
+_kernel_outs*/
+_kout_*/
+_lb_snapshots/
+_quarantine_public/
+project/_kaggle_logs/
+project/_tmp*/
+project/_p*_logs/
+project/prescreen_output/
+kernel_stage/
+project/_our_output*/
+_asset_20260806/
+.opencode/
+.codex-bridge-toolkit/
+
+# Windows reserved name
+nul
+
+# Env / secrets
+.env
+*.token
+access_token
+
+# Large artifacts
+*.zip
+*.pdf
+咨询包/
+openai/

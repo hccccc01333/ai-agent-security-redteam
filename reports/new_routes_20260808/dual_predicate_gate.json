@@ -1,0 +1,11 @@
+{
+ "date": "2026-08-08",
+ "gate": {
+  "p_single_assumed": 0.9,
+  "ev_single": 16.2,
+  "raw_single_exfil": 18.0,
+  "raw_dual_ab": 22.0,
+  "dual_break_even_p": 0.7364,
+  "rule": "dual wins iff 22*P_dual > 18*P_single"
+ }
+}

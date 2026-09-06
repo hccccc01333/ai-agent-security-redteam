@@ -1,0 +1,3 @@
+# Local iteration. On Kaggle, competition data provides aicomp_sdk.
+# Prefer: PYTHONPATH=../data  (see scripts/smoke_test.py)
+gymnasium>=0.29,<1

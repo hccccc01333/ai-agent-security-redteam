@@ -1,0 +1,48 @@
+{
+ "date": "2026-08-08",
+ "gate": "RS-GATE v1",
+ "ref": "TEST_FAIL",
+ "overall": "FAIL",
+ "public_score": 60.0,
+ "private_values": [
+  "0.00",
+  "0.00"
+ ],
+ "multi_stats": {
+  "plain": {
+   "v": 5,
+   "pf": 1.0
+  },
+  "multi_plain": {
+   "v": 0,
+   "pf": 0.0
+  },
+  "multi_bare": {
+   "v": 0,
+   "pf": 0.0
+  }
+ },
+ "multi_verdict": "NO_MULTI",
+ "items": [
+  {
+   "item": "G1_no_fatal_error",
+   "status": "FAIL",
+   "detail": "found Submission Format Error"
+  },
+  {
+   "item": "G2_public_score",
+   "status": "FAIL",
+   "detail": "public=60.0 min=84.93 promote=87.93 (below floor)"
+  },
+  {
+   "item": "G3_private_rows",
+   "status": "PASS",
+   "detail": "parsed private values=['0.00', '0.00'] (>=2 needed to fill E)"
+  },
+  {
+   "item": "G4_A1_multipost_verdict",
+   "status": "WARN",
+   "detail": "max multi pf=0.0 stats={'plain': {'v': 5, 'pf': 1.0}, 'multi_plain': {'v': 0, 'pf': 0.0}, 'multi_bare': {'v': 0, 'pf': 0.0}} verdict=NO_MULTI"
+  }
+ ]
+}

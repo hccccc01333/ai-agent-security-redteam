@@ -1,0 +1,75 @@
+{
+  "timestamp": "20260816T145550Z",
+  "variant": "w14_purefixture.py",
+  "candidates": 400,
+  "levels": {
+    "0.0": [
+      {
+        "salt": "",
+        "strictness": 0.0,
+        "returned": 300,
+        "findings": 0,
+        "score": 0.0,
+        "score_raw": 0.0,
+        "unique_cells": 0,
+        "interactions": 300,
+        "failure_mix": {
+          "blocked": 0,
+          "no_fire": 300,
+          "partial": 0,
+          "full": 0,
+          "unobservable": 0
+        },
+        "runtime_s": 0.53,
+        "attack_stderr_tail": ""
+      },
+      {
+        "salt": "1",
+        "strictness": 0.0,
+        "returned": 300,
+        "findings": 0,
+        "score": 0.0,
+        "score_raw": 0.0,
+        "unique_cells": 0,
+        "interactions": 300,
+        "failure_mix": {
+          "blocked": 0,
+          "no_fire": 300,
+          "partial": 0,
+          "full": 0,
+          "unobservable": 0
+        },
+        "runtime_s": 0.55,
+        "attack_stderr_tail": ""
+      },
+      {
+        "salt": "2",
+        "strictness": 0.0,
+        "returned": 300,
+        "findings": 0,
+        "score": 0.0,
+        "score_raw": 0.0,
+        "unique_cells": 0,
+        "interactions": 300,
+        "failure_mix": {
+          "blocked": 0,
+          "no_fire": 300,
+          "partial": 0,
+          "full": 0,
+          "unobservable": 0
+        },
+        "runtime_s": 0.52,
+        "attack_stderr_tail": ""
+      }
+    ]
+  },
+  "headline_strictness": 0.0,
+  "replay_budget": {
+    "interactions": 300.0,
+    "est_s_4s": 1200.0,
+    "util_pct_4s": 13.333333333333334,
+    "partial_score_4s": 0.0,
+    "pass_score": 80.0,
+    "verdict": "GO"
+  }
+}

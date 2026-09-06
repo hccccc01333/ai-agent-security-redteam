@@ -1,0 +1,9 @@
+timestamp,framework_id,plan_id,component_id,action,experiment_id,role,result_summary,note
+2026-08-02,F004,P001_diversity,C004,abandon,E1,????,LB 81.9 (rejected),
+2026-08-02,F004,P001_diversity,C004,abandon,E2,????,LB 85.77 (rejected),
+2026-08-02,F004,P001_diversity,C004,abandon,E3,????,LB 83.97 (rejected),
+2026-08-02,F004,P001_diversity,C004,abandon,E4,????,LB 53.99 (rejected),
+2026-08-02,F004,P001_diversity,C004,abandon,E5,????,LB 64.665 (rejected),
+2026-08-02,F004,P001_diversity,C004,abandon,F2,????,LB 76.995 (rejected),
+2026-08-02,F004,P001_diversity,C004,use,F4,????,LB 84.78 (promoted),
+2026-08-03,F004,P001_diversity,C005,abandon,x7_bank_sel,????,ERROR (format/void),

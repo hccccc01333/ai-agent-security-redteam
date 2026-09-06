@@ -1,0 +1,6 @@
+timestamp,framework_id,plan_id,component_id,action,experiment_id,role,result_summary,note
+2026-08-06,F004,P002_diversity_archive,C009,plan,n3_tools_only_archive,candidate,tools_only_archive,parent=W1; multi-family round-robin fill
+2026-08-06,F004,P002_diversity_archive,C009,plan,n3_tools_only_archive,local_judge,family_distribution>=2,mock 3-salt; replay safe
+2026-08-06,F004,P002_diversity_archive,C009,use,n3_tools_only_archive,local_judge,archive_ok_3salts,salt0 4fam/2000; salt1 4fam/2000; salt2 4fam/2000 (plain/bare/bare_ok/inj_close)
+2026-08-06,F004,P002_diversity_archive,C009,use,n3_tools_only_archive,candidate,local_pass,AST+no_op+smoke+replay judge pass; wall 300s ok; registry appended
+2026-08-06,F004,P002_diversity_archive,C009,use,n3_tools_only_archive,submitted,ref_55297758,kernel v83; PENDING; verdict: >=87.93 promoted else back to W1

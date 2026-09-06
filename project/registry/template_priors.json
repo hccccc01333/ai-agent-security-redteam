@@ -1,0 +1,24 @@
+{
+  "source": "submission_manifest.json (real public scores)",
+  "note": "raw_per_interaction = public_score*200/interactions; prior_weight = same metric for ordering",
+  "priors": {
+    "direct_notify": {
+      "submissions": 3,
+      "mean_score": 12.81,
+      "mean_raw_per_interaction": 1.8,
+      "prior_weight": 1.8
+    },
+    "direct_notify_multisend": {
+      "submissions": 2,
+      "mean_score": 8.197,
+      "mean_raw_per_interaction": 2.229,
+      "prior_weight": 2.229
+    },
+    "notify_direct": {
+      "submissions": 1,
+      "mean_score": 9.935,
+      "mean_raw_per_interaction": 1.59,
+      "prior_weight": 1.59
+    }
+  }
+}

@@ -1,0 +1,693 @@
+{
+  "schema_version": "1.0",
+  "note": "Online attribution manifest: every submission carries family_mix + router/selector/budget so aggregate scores can be fit to family marginal effects (F010).",
+  "fields": [
+    "submission_id",
+    "date",
+    "variant",
+    "base",
+    "family_mix",
+    "router_version",
+    "selector_version",
+    "candidate_count",
+    "interactions",
+    "budget_safe",
+    "mutation",
+    "dedup",
+    "seed",
+    "status",
+    "public_score"
+  ],
+  "entries": [
+    {
+      "submission_id": "55340535",
+      "date": "2026-08-08T04:14:27Z",
+      "variant": "s1_balanced.py",
+      "base": "email_chain_grid",
+      "family_mix": {
+        "notify_direct": 1.0
+      },
+      "router_version": "r0-static",
+      "selector_version": "sel0-grid",
+      "candidate_count": 500,
+      "interactions": 1250,
+      "budget_safe": null,
+      "mutation": "none",
+      "dedup": "recipient-rotated (6 domains x 300 users; cross-candidate collisions)",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 9.935
+    },
+    {
+      "submission_id": "55341285",
+      "date": "2026-08-08T04:52:36Z",
+      "variant": "w1_multi_post_probe.py",
+      "base": "w1",
+      "family_mix": {
+        "exfil": 1.0,
+        "multi_post_share": null,
+        "note": "multi_plain/multi_bare added; selector unchanged"
+      },
+      "router_version": "r0-static",
+      "selector_version": "sel0-fire",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "template-add",
+      "dedup": "none (W1 heritage)",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 77.67
+    },
+    {
+      "submission_id": "55342360",
+      "date": "2026-08-08T05:41:08Z",
+      "variant": "w1_probe5_fire65.py",
+      "base": "w1",
+      "family_mix": {
+        "exfil_plain": 1.0
+      },
+      "router_version": "r0-static",
+      "selector_version": "sel0-fire",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "none",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 81.495
+    },
+    {
+      "submission_id": "55342547",
+      "date": "2026-08-08T05:51:51Z",
+      "variant": "w1_probe5_fire65.py",
+      "base": "w1",
+      "family_mix": {
+        "exfil_plain": 1.0
+      },
+      "router_version": "r0-static",
+      "selector_version": "sel0-fire",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "none",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 82.89
+    },
+    {
+      "submission_id": "55355085",
+      "date": "2026-08-08T16:13:34+00:00",
+      "variant": "s2_efficient_k1.py",
+      "base": "s1_balanced",
+      "family_mix": {
+        "direct_notify": 1.0
+      },
+      "router_version": "r0-static",
+      "selector_version": "sel0",
+      "candidate_count": 1250,
+      "interactions": 1250,
+      "budget_safe": null,
+      "mutation": "none",
+      "dedup": "global-unique-recipients (12 domains)",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 13.335
+    },
+    {
+      "submission_id": "55365926",
+      "date": "2026-08-09T03:09:20+00:00",
+      "variant": "s4_multisend_probe.py",
+      "base": "s2_efficient",
+      "family_mix": {
+        "direct_notify_multisend": 1.0
+      },
+      "router_version": "r0-static",
+      "selector_version": "sel0",
+      "candidate_count": 500,
+      "interactions": 500,
+      "budget_safe": null,
+      "mutation": "multisend",
+      "dedup": "global-unique-recipient-sets (5 each)",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 7.645
+    },
+    {
+      "submission_id": "55366894",
+      "date": "2026-08-09T03:54:59+00:00",
+      "variant": "s2_aggressive_2000.py",
+      "base": "s2_efficient",
+      "family_mix": {
+        "direct_notify": 1.0
+      },
+      "router_version": "r0-static",
+      "selector_version": "sel0",
+      "candidate_count": 2000,
+      "interactions": 2000,
+      "budget_safe": null,
+      "mutation": "none",
+      "dedup": "global-unique-recipients (12 domains)",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 12.495
+    },
+    {
+      "submission_id": "55392497",
+      "date": "2026-08-10T00:44:14+00:00",
+      "variant": "s6_multisend_1250.py",
+      "base": "s6_multisend",
+      "family_mix": {
+        "direct_notify_multisend": 1.0
+      },
+      "router_version": "r0-static",
+      "selector_version": "sel0",
+      "candidate_count": 1250,
+      "interactions": 1250,
+      "budget_safe": null,
+      "mutation": "multisend(3)",
+      "dedup": "global-unique-recipients",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 8.75
+    },
+    {
+      "submission_id": "55392619",
+      "date": "2026-08-10T00:44:25+00:00",
+      "variant": "s5_router_pool.py",
+      "base": "s5_router",
+      "family_mix": {
+        "direct_notify": 0.25,
+        "decompose_step": 0.25,
+        "tool_aware": 0.25,
+        "reframe_context": 0.25
+      },
+      "router_version": "r0-static",
+      "selector_version": "sel0",
+      "candidate_count": 1250,
+      "interactions": 1250,
+      "budget_safe": null,
+      "mutation": "none",
+      "dedup": "global-unique-recipients",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": null
+    },
+    {
+      "submission_id": "55392674",
+      "date": "2026-08-10T00:44:30+00:00",
+      "variant": "s2_efficient_k1.py",
+      "base": "s2_retest",
+      "family_mix": {
+        "direct_notify": 1.0
+      },
+      "router_version": "r0-static",
+      "selector_version": "sel0",
+      "candidate_count": 1250,
+      "interactions": 1250,
+      "budget_safe": null,
+      "mutation": "none",
+      "dedup": "global-unique-recipients",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 12.6
+    },
+    {
+      "submission_id": "55392562",
+      "date": "2026-08-10T00:44:47+00:00",
+      "variant": "x5_probe8.py",
+      "base": "w1_knob_fire80",
+      "family_mix": {
+        "exfil_plain": 1.0
+      },
+      "router_version": "r0-static",
+      "selector_version": "sel0-fire",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "knob MIN_FIRE=0.8",
+      "dedup": "none",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 82.845
+    },
+    {
+      "submission_id": "55457208",
+      "date": "2026-08-12T11:33:27+00:00",
+      "variant": "w2_adaptive_exfil.py",
+      "base": "w1_probe5_fire65",
+      "family_mix": {
+        "exfil_adaptive": 0.96,
+        "fixture_hedge": 0.04
+      },
+      "router_version": "r1-adaptive",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.9,
+      "mutation": "template-expand(7)",
+      "dedup": "adaptive+hedge",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 74.475
+    },
+    {
+      "submission_id": "55457457",
+      "date": "2026-08-12T11:48:49+00:00",
+      "variant": "w3_state_exfil.py",
+      "base": "w2_adaptive_exfil",
+      "family_mix": {
+        "exfil_adaptive": 0.96,
+        "fixture_hedge": 0.04
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.9,
+      "mutation": "snapshot-restore",
+      "dedup": "adaptive+hedge",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 76.86
+    },
+    {
+      "submission_id": "55458113",
+      "date": "2026-08-12T12:20:48+00:00",
+      "variant": "w4_mutate_exfil.py",
+      "base": "w3_state_exfil",
+      "family_mix": {
+        "exfil_adaptive": 0.96,
+        "fixture_hedge": 0.04
+      },
+      "router_version": "r3-mutate",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.9,
+      "mutation": "mutation-pool(16)",
+      "dedup": "adaptive+hedge",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 73.53
+    },
+    {
+      "submission_id": "55458501",
+      "date": "2026-08-12T12:39:42+00:00",
+      "variant": "w5_bigpool_exfil.py",
+      "base": "w4_mutate_exfil",
+      "family_mix": {
+        "exfil_adaptive": 0.96,
+        "fixture_hedge": 0.04
+      },
+      "router_version": "r4-bigpool",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.9,
+      "mutation": "mutation-pool(60)",
+      "dedup": "adaptive+hedge",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 34.39
+    },
+    {
+      "submission_id": "55475454",
+      "date": "2026-08-13T05:52:59+00:00",
+      "variant": "w6_fullbudget_exfil.py",
+      "base": "w3_state_exfil",
+      "family_mix": {
+        "exfil_adaptive": 0.98,
+        "fixture_hedge": 0.02
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "adaptive+hedge",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 82.125
+    },
+    {
+      "submission_id": "55475674",
+      "date": "2026-08-13T06:16:51+00:00",
+      "variant": "w8_midbudget_exfil.py",
+      "base": "w3_state_exfil",
+      "family_mix": {
+        "exfil_adaptive": 0.96,
+        "fixture_hedge": 0.04
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.95,
+      "mutation": "none",
+      "dedup": "adaptive+hedge",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": null
+    },
+    {
+      "submission_id": "55475739",
+      "date": "2026-08-13T06:16:51+00:00",
+      "variant": "w10_nohedge_exfil.py",
+      "base": "w3_state_exfil",
+      "family_mix": {
+        "exfil_adaptive": 1.0
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "adaptive+hedge",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": null
+    },
+    {
+      "submission_id": "55475812",
+      "date": "2026-08-13T06:16:51+00:00",
+      "variant": "w3_state_exfil.py",
+      "base": "w2_adaptive_exfil",
+      "family_mix": {
+        "exfil_adaptive": 0.96,
+        "fixture_hedge": 0.04
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.9,
+      "mutation": "snapshot-restore",
+      "dedup": "adaptive+hedge",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 75.105
+    },
+    {
+      "submission_id": "55486917",
+      "date": "2026-08-13T15:54:39+00:00",
+      "variant": "w9_nohedge_090_exfil.py",
+      "base": "w3_state_exfil",
+      "family_mix": {
+        "exfil_adaptive": 1.0
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.9,
+      "mutation": "none",
+      "dedup": "adaptive",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 77.085
+    },
+    {
+      "submission_id": "55530701",
+      "date": "2026-08-15T15:25:52+00:00",
+      "variant": "w10_nohedge_exfil.py",
+      "base": "w3_state_exfil",
+      "family_mix": {
+        "exfil_adaptive": 1.0
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "adaptive",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 82.755
+    },
+    {
+      "submission_id": "55532910",
+      "date": "2026-08-15T17:33:06+00:00",
+      "variant": "w11_hedge10_exfil.py",
+      "base": "w6_fullbudget_exfil",
+      "family_mix": {
+        "exfil_adaptive": 0.9,
+        "fixture_hedge": 0.1
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "adaptive+hedge10",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 80.775
+    },
+    {
+      "submission_id": "55533284",
+      "date": "2026-08-15T17:57:32+00:00",
+      "variant": "w13_hedge5_exfil.py",
+      "base": "w6_fullbudget_exfil",
+      "family_mix": {
+        "exfil_adaptive": 0.95,
+        "fixture_hedge": 0.05
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "adaptive+hedge",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 82.845
+    },
+    {
+      "submission_id": "55533345",
+      "date": "2026-08-15T17:57:32+00:00",
+      "variant": "w6_fullbudget_exfil.py",
+      "base": "w3_state_exfil",
+      "family_mix": {
+        "exfil_adaptive": 0.98,
+        "fixture_hedge": 0.02
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "adaptive+hedge",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 81.63
+    },
+    {
+      "submission_id": "55556053",
+      "date": "2026-08-16T15:19:14+00:00",
+      "variant": "w13_hedge5_exfil.py",
+      "base": "w13_hedge5_exfil",
+      "family_mix": {
+        "exfil_adaptive": 0.95,
+        "fixture_hedge": 0.05
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "adaptive+hedge",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 77.13
+    },
+    {
+      "submission_id": "55556153",
+      "date": "2026-08-16T15:19:14+00:00",
+      "variant": "w19_dualpost_exfil.py",
+      "base": "w13_hedge5_exfil",
+      "family_mix": {
+        "exfil_adaptive": 0.95,
+        "dualpost": 1.0,
+        "fixture_hedge": 0.05
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "adaptive+hedge",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 76.665
+    },
+    {
+      "submission_id": "55556265",
+      "date": "2026-08-16T15:19:14+00:00",
+      "variant": "w21_hedge7_exfil.py",
+      "base": "w13_hedge5_exfil",
+      "family_mix": {
+        "exfil_adaptive": 0.93,
+        "fixture_hedge": 0.07
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "adaptive+hedge",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 81.27
+    },
+    {
+      "submission_id": "55556427",
+      "date": "2026-08-16T15:19:14+00:00",
+      "variant": "w22_hedge15_exfil.py",
+      "base": "w13_hedge5_exfil",
+      "family_mix": {
+        "exfil_adaptive": 0.85,
+        "fixture_hedge": 0.15
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "adaptive+hedge",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 72.765
+    },
+    {
+      "submission_id": "55556548",
+      "date": "2026-08-16T15:19:14+00:00",
+      "variant": "w14_purefixture.py",
+      "base": "none",
+      "family_mix": {
+        "fixture_hedge": 1.0
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 300,
+      "interactions": null,
+      "budget_safe": null,
+      "mutation": "none",
+      "dedup": "adaptive+hedge",
+      "seed": "n/a",
+      "status": "COMPLETE",
+      "public_score": 0.0
+    },
+    {
+      "submission_id": "55582478",
+      "date": "2026-08-17T17:00:16+00:00",
+      "variant": "w1_probe5_fire65.py",
+      "base": "w1",
+      "family_mix": {
+        "exfil_plain": 1.0
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "adaptive+hedge",
+      "seed": "same-day-retest-v2",
+      "status": "PENDING",
+      "public_score": null
+    },
+    {
+      "submission_id": "55582562",
+      "date": "2026-08-17T17:00:16+00:00",
+      "variant": "w13_hedge5_exfil.py",
+      "base": "w13_hedge5_exfil",
+      "family_mix": {
+        "exfil_adaptive": 0.95,
+        "fixture_hedge": 0.05
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "adaptive+hedge",
+      "seed": "same-day-retest-v2",
+      "status": "PENDING",
+      "public_score": null
+    },
+    {
+      "submission_id": "55582652",
+      "date": "2026-08-17T17:00:16+00:00",
+      "variant": "w10_nohedge_exfil.py",
+      "base": "w3_state_exfil",
+      "family_mix": {
+        "exfil_adaptive": 1.0
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "adaptive+hedge",
+      "seed": "same-day-retest-v2",
+      "status": "PENDING",
+      "public_score": null
+    },
+    {
+      "submission_id": "55582671",
+      "date": "2026-08-17T17:00:17+00:00",
+      "variant": "w11_hedge10_exfil.py",
+      "base": "w6_fullbudget_exfil",
+      "family_mix": {
+        "exfil_adaptive": 0.9,
+        "fixture_hedge": 0.1
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "adaptive+hedge",
+      "seed": "same-day-retest-v2",
+      "status": "PENDING",
+      "public_score": null
+    },
+    {
+      "submission_id": "55582708",
+      "date": "2026-08-17T17:00:17+00:00",
+      "variant": "w19_dualpost_exfil.py",
+      "base": "w13_hedge5_exfil",
+      "family_mix": {
+        "exfil_adaptive": 0.95,
+        "dualpost": 1.0,
+        "fixture_hedge": 0.05
+      },
+      "router_version": "r2-state",
+      "selector_version": "sel1-fire-cost",
+      "candidate_count": 2000,
+      "interactions": null,
+      "budget_safe": 0.996,
+      "mutation": "none",
+      "dedup": "adaptive+hedge",
+      "seed": "same-day-retest-v2",
+      "status": "PENDING",
+      "public_score": null
+    }
+  ]
+}

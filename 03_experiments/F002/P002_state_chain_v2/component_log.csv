@@ -1,0 +1,13 @@
+timestamp,framework_id,plan_id,component_id,action,experiment_id,role,result_summary,note
+2026-08-06,F002,P002_state_chain_v2,C006,reopen,m1_write_chain,parent,no_score,M1 single-message chain; local 0 fire
+2026-08-06,F002,P002_state_chain_v2,C008,plan,n1_state_chain,local_judge,chain_completeness_3salts,new component
+2026-08-06,F002,P002_state_chain_v2,C006,plan,n1_state_chain,candidate,multi_message_progressive,write->read->post
+2026-08-06,F002,P002_state_chain_v2,C008,use,n1_state_chain,local_judge,chain_3of3_salts,seeds 1/2/3 all chain=True; events write->read->post
+2026-08-06,F002,P002_state_chain_v2,C006,use,n1_state_chain,candidate,local_pass,AST+no_op+smoke+replay judge pass; 100 candidates; EXFIL unobservable locally
+2026-08-06,F002,P002_state_chain_v2,C006,plan,n1_state_chain,variant_scan,4_families,scan_chain_variants: note/step/post/send; t3 read-post rejected (no MARKER), t4 read-secret rejected (guardrail deny)
+2026-08-06,F002,P002_state_chain_v2,C008,use,n1_state_chain,local_judge,chain_4of4_families,note_5/5 step_5/5 post_85/85 send_5/5 after note_ prefix fix
+2026-08-06,F002,P002_state_chain_v2,C006,use,n1_state_chain,candidate,local_pass_v2,4-family TEMPLATES; probe selects chain_post; 100 candidates; replay 5/6300s local
+2026-08-06,F002,P002_state_chain_v2,C006,use,n1_state_chain,submitted,ref_55297292,kernel v82; wall_survival pass; PENDING; verdict line in PLAN
+2026-08-06,F002,P002_state_chain_v2,C006,plan,n1b_capacity200,standby,MAX_CANDIDATES 100->200,parent=n1; fires only if N1 converts; budget model in header
+2026-08-06,F002,P002_state_chain_v2,C006,use,n1b_capacity200,local_pass,wall_300s_ok,200 cands; replay 15/6300 local; 4 fam chain complete
+2026-08-07,F002,P002_state_chain_v2,C006,use,n1_state_chain,scored,public_9.08,chain converts ~100%; direction holds; private-LB blind-spot risk per CONC-0010

@@ -1,0 +1,26 @@
+{
+  "route": "A1",
+  "status": "SUBMITTED (SUBMIT_WITH_WARN)",
+  "submit_time": "2026-08-08 04:52:36 UTC (kernel v91 COMPLETE)",
+  "kernel": "afterrain42/jed-attack-v1 v91",
+  "submission_ref": 55341285,
+  "description": "NR_A1_W1_multi_post_20260808 A1 probe: W1 + multi_plain/multi_bare; unified gate PASS (6/1/0)",
+  "gate": {
+    "unified_g3": "PASS (validate / evaluate-mock / local_score / sizing-skip / wall-300s / ladder-info)",
+    "nr_gate": "6 PASS / 1 WARN / 0 FAIL (warn=E_real_leaderboard_log_missing)",
+    "report": "reports/gate_w1_multi_post_probe.md"
+  },
+  "lineage_sha256": {
+    "attack_py": "2C004C8AD24F3A40840D4127BA3ACA57A6782A2CFE3C3ECE59267ABFC4C5DFF8",
+    "submit_notebook": "1711D0F289842E9CCE9640C2F51A025D1BCF849F115AEFC20081DF1108E8A2B8",
+    "gate_report": "1742DD10AB238E051D12912F311B02156C1FD41AC2ECA63EA328B0D28E486A2D",
+    "parent_w1": "F3C8FF7DBC74A5869457BF3165748F916E6A646F218D186DEE7C2338C90152E4"
+  },
+  "freeze_rule": "提交前冻结；W1 不删、不覆盖、不重写（control）",
+  "post_submit_actions": [
+    "第一时间回填 E（returned_score_gate.py 解析 [GATEWAY] 四行分）",
+    "与 W1 做真实环境差分（public/runtime/成交数/工具事件/异常）",
+    "不基于单次公榜结果过拟合；三情形判定：涨分=新锚点，持平=模型轴无增益，掉分=先查拒绝率/断链/成交率",
+    "A1 定位=受控真实环境实验，不是最终版确认"
+  ]
+}

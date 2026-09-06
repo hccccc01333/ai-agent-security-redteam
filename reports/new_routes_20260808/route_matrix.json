@@ -1,0 +1,60 @@
+{
+  "date": "2026-08-08",
+  "unit": "per-candidate raw proxy (P003 + A probe; relative ordering only, NOT a score predictor)",
+  "layers": {
+    "observed": ["public_score", "runtime", "completion", "error", "timeout"],
+    "derived": ["transactability", "robustness", "floor", "ceiling"]
+  },
+  "note": "pair_selector 只吃 G-tier scenario scores；reliability（completion/error/timeout）待 W1×2/A1/S1 真实结果回填，禁止把同源派生代理重复计权",
+  "tiers": [
+    "G0_allow_all",
+    "G1_optimal",
+    "G2_sink_dlp",
+    "G3_all_args_dlp",
+    "G4_decode_dlp",
+    "G5_provenance",
+    "G6_persistent_taint",
+    "G7_deny_all"
+  ],
+  "routes": {
+    "W1_family": {
+      "G0_allow_all": 18, "G1_optimal": 18, "G2_sink_dlp": 0, "G3_all_args_dlp": 0,
+      "G4_decode_dlp": 0, "G5_provenance": 0, "G6_persistent_taint": 0, "G7_deny_all": 0,
+      "transaction_proxy": "new-harness control 82.19 (mean of 81.495/82.890)",
+      "reliability": {"completion_p": 1.0, "error_p": 0.0, "timeout_p": null, "evidence": "W1×2 COMPLETE 55342360/55342547"},
+      "observed": {"public_score_mean": 82.1925, "completion": "2/2 COMPLETE"}
+    },
+    "CONFUSED": {
+      "G0_allow_all": 6, "G1_optimal": 6, "G2_sink_dlp": 6, "G3_all_args_dlp": 6,
+      "G4_decode_dlp": 6, "G5_provenance": 6, "G6_persistent_taint": 6, "G7_deny_all": 0,
+      "transaction_proxy": "very low (S1=9.935 / N6B=5.115 / N6=4.755)",
+      "reliability": {"completion_p": 1.0, "error_p": 0.0, "timeout_p": null, "evidence": "S1+N6B COMPLETE"},
+      "observed": {"public_score_s1": 9.935, "public_score_n6b": 5.115, "completion": "COMPLETE"}
+    },
+    "dual_predicate": {
+      "G0_allow_all": 22, "G1_optimal": 22, "G2_sink_dlp": 0, "G3_all_args_dlp": 0,
+      "G4_decode_dlp": 0, "G5_provenance": 0, "G6_persistent_taint": 0, "G7_deny_all": 0,
+      "transaction_proxy": "unknown (model axis untested)",
+      "reliability": {"completion_p": null, "error_p": null, "timeout_p": null, "evidence": "untested"}
+    },
+    "multi_post_k2": {
+      "G0_allow_all": 34, "G1_optimal": 34, "G2_sink_dlp": 0, "G3_all_args_dlp": 0,
+      "G4_decode_dlp": 0, "G5_provenance": 0, "G6_persistent_taint": 0, "G7_deny_all": 0,
+      "transaction_proxy": "A1=77.670 < W1_mean 82.1925 -> kill A",
+      "reliability": {"completion_p": 1.0, "error_p": 0.0, "timeout_p": null, "evidence": "A1 55341285 COMPLETE"},
+      "observed": {"public_score_a1": 77.67, "completion": "COMPLETE"}
+    },
+    "multi_post_k5": {
+      "G0_allow_all": 82, "G1_optimal": 82, "G2_sink_dlp": 0, "G3_all_args_dlp": 0,
+      "G4_decode_dlp": 0, "G5_provenance": 0, "G6_persistent_taint": 0, "G7_deny_all": 0,
+      "transaction_proxy": "untested",
+      "reliability": {"completion_p": null, "error_p": null, "timeout_p": null, "evidence": "untested"}
+    },
+    "encoded": {
+      "G0_allow_all": 0, "G1_optimal": 0, "G2_sink_dlp": 0, "G3_all_args_dlp": 0,
+      "G4_decode_dlp": 0, "G5_provenance": 0, "G6_persistent_taint": 0, "G7_deny_all": 0,
+      "transaction_proxy": "F008 closed",
+      "reliability": {"completion_p": null, "error_p": null, "timeout_p": null, "evidence": "closed"}
+    }
+  }
+}

@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>新路线实验规划 v1.0</title>
+<style>
+  :root{
+    --bg:#0b1020;
+    --panel:#121a2f;
+    --panel2:#18233d;
+    --text:#eaf0ff;
+    --muted:#9fb0d0;
+    --line:#2b3b62;
+    --blue:#5ea1ff;
+    --green:#46d39a;
+    --yellow:#f6c85f;
+    --orange:#ff9f43;
+    --red:#ff6b6b;
+    --purple:#b286ff;
+    --cyan:#5ce1e6;
+  }
+
+  *{box-sizing:border-box}
+
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at top right, rgba(94,161,255,.14), transparent 34%),
+      radial-gradient(circle at top left, rgba(178,134,255,.10), transparent 30%),
+      var(--bg);
+    color:var(--text);
+    font-family:
+      Inter,
+      "PingFang SC",
+      "Microsoft YaHei",
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+    line-height:1.65;
+  }
+
+  .wrap{
+    width:min(1440px, 95vw);
+    margin:0 auto;
+    padding:32px 0 80px;
+  }
+
+  .hero{
+    background:linear-gradient(
+      135deg,
+      rgba(94,161,255,.14),
+      rgba(178,134,255,.10)
+    );
+    border:1px solid var(--line);
+    border-radius:24px;
+    padding:30px;
+    margin-bottom:24px;
+    box-shadow:0 18px 60px rgba(0,0,0,.22);
+  }
+
+  h1,h2,h3{
+    margin-top:0;
+  }
+
+  h1{
+    font-size:34px;
+    margin-bottom:8px;
+  }
+
+  h2{
+    font-size:25px;
+    margin-top:34px;
+    margin-bottom:14px;
+  }
+
+  h3{
+    font-size:19px;
+  }
+
+  .sub{
+    color:var(--muted);
+    font-size:15px;
+  }
+
+  .badge{
+    display:inline-block;
+    padding:5px 10px;
+    border-radius:999px;
+    font-size:12px;
+    border:1px solid var(--line);
+    margin-right:8px;
+    margin-bottom:6px;
+    background:rgba(255,255,255,.03);
+  }
+
+  .b-green{color:var(--green); border-color:rgba(70,211,154,.35)}
+  .b-blue{color:var(--blue); border-color:rgba(94,161,255,.35)}
+  .b-yellow{color:var(--yellow); border-color:rgba(246,200,95,.35)}
+  .b-red{color:var(--red); border-color:rgba(255,107,107,.35)}
+  .b-purple{color:var(--purple); border-color:rgba(178,134,255,.35)}
+  .b-cyan{color:var(--cyan); border-color:rgba(92,225,230,.35)}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(12,1fr);
+    gap:16px;
+  }
+
+  .card{
+    background:linear-gradient(180deg, rgba(24,35,61,.95), rgba(18,26,47,.98));
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.15);
+  }
+
+  .col-12{grid-column:span 12}
+  .col-8{grid-column:span 8}
+  .col-6{grid-column:span 6}
+  .col-4{grid-column:span 4}
+  .col-3{grid-column:span 3}
+
+  @media(max-width:900px){
+    .col-8,.col-6,.col-4,.col-3{
+      grid-column:span 12;
+    }
+  }
+
+  .decision{
+    border-left:4px solid var(--green);
+  }
+
+  .warn{
+    border-left:4px solid var(--yellow);
+  }
+
+  .danger{
+    border-left:4px solid var(--red);
+  }
+
+  .info{
+    border-left:4px solid var(--blue);
+  }
+
+  .purple{
+    border-left:4px solid var(--purple);
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    overflow:hidden;
+    border-radius:14px;
+    font-size:14px;
+  }
+
+  th,td{
+    padding:12px 12px;
+    border-bottom:1px solid var(--line);
+    text-align:left;
+    vertical-align:top;
+  }
+
+  th{
+    background:rgba(255,255,255,.04);
+    color:#dbe7ff;
+  }
+
+  tr:hover td{
+    background:rgba(255,255,255,.02);
+  }
+
+  code{
+    color:#a7e1ff;
+    background:rgba(94,161,255,.08);
+    border:1px solid rgba(94,161,255,.15);
+    border-radius:6px;
+    padding:2px 5px;
+  }
+
+  pre{
+    white-space:pre-wrap;
+    background:#09111f;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:16px;
+    overflow:auto;
+    color:#cfe3ff;
+  }
+
+  ul,ol{
+    padding-left:22px;
+  }
+
+  li{
+    margin:5px 0;
+  }
+
+  .score{
+    font-size:34px;
+    font-weight:800;
+    margin:4px 0;
+  }
+
+  .small{
+    font-size:13px;
+    color:var(--muted);
+  }
+
+  .route{
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+    margin-bottom:12px;
+  }
+
+  .route-id{
+    min-width:40px;
+    width:40px;
+    height:40px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:800;
+    background:rgba(255,255,255,.05);
+    border:1px solid var(--line);
+  }
+
+  .meter{
+    height:8px;
+    background:#0b1325;
+    border-radius:999px;
+    overflow:hidden;
+    margin-top:8px;
+  }
+
+  .meter > div{
+    height:100%;
+    border-radius:999px;
+  }
+
+  .m-green{background:var(--green)}
+  .m-blue{background:var(--blue)}
+  .m-yellow{background:var(--yellow)}
+  .m-purple{background:var(--purple)}
+  .m-red{background:var(--red)}
+
+  .timeline{
+    position:relative;
+    padding-left:26px;
+  }
+
+  .timeline:before{
+    content:"";
+    position:absolute;
+    left:8px;
+    top:6px;
+    bottom:6px;
+    width:2px;
+    background:var(--line);
+  }
+
+  .step{
+    position:relative;
+    margin:16px 0;
+  }
+
+  .step:before{
+    content:"";
+    position:absolute;
+    left:-23px;
+    top:7px;
+    width:10px;
+    height:10px;
+    background:var(--blue);
+    border-radius:50%;
+    box-shadow:0 0 0 4px rgba(94,161,255,.14);
+  }
+
+  .go{
+    color:var(--green);
+    font-weight:700;
+  }
+
+  .hold{
+    color:var(--yellow);
+    font-weight:700;
+  }
+
+  .stop{
+    color:var(--red);
+    font-weight:700;
+  }
+
+  .mono{
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Consolas,
+      monospace;
+  }
+
+  .footer{
+    margin-top:40px;
+    color:var(--muted);
+    font-size:13px;
+    text-align:center;
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <section class="hero">
+    <div>
+      <span class="badge b-green">v1.0</span>
+      <span class="badge b-blue">2026-08-08</span>
+      <span class="badge b-purple">新路线阶段</span>
+      <span class="badge b-cyan">本地优先</span>
+    </div>
+
+    <h1>清榜后新路线实验规划</h1>
+
+    <p class="sub">
+      本页只讨论今天官方更新后产生的新增机会，不再继续旧线程的 W1 单帖细调。
+      核心目标是：先把“确定能本地验证的结构性收益”吃完，再决定哪一条值得消耗公榜枪位。
+    </p>
+
+    <div class="card decision" style="margin-top:18px;">
+      <h3>结论先说</h3>
+      <p>
+        我赞成你给出的顺序，而且会稍微调整成：
+      </p>
+
+      <p class="score" style="color:var(--green)">
+        A + B + E 并行 → C → D
+      </p>
+
+      <p>
+        原因是：
+        <strong>A、B、E 都不需要提交</strong>，
+        且三者分别决定了
+        <strong>吞吐上限、回放容量、真实护栏分布</strong>。
+        这三件事一旦有任意一项发生结构变化，后面的候选策略都会重新定价。
+      </p>
+    </div>
+  </section>
+
+
+  <h2>一、五条新路线优先级</h2>
+
+  <div class="grid">
+
+    <div class="card col-4">
+      <div class="route">
+        <div class="route-id" style="color:var(--green)">A</div>
+        <div>
+          <h3>Gemma multi-post</h3>
+          <div class="small">解析器更新直接相关</div>
+        </div>
+      </div>
+
+      <div class="meter">
+        <div class="m-green" style="width:96%"></div>
+      </div>
+
+      <p>
+        <strong>优先级：最高</strong>
+      </p>
+
+      <ul>
+        <li>潜在改变单次 interact 的有效动作密度。</li>
+        <li>若多个 post 被独立计分，吞吐模型会整体换挡。</li>
+        <li>本地即可验证计数、cell、顺序、失败传播。</li>
+      </ul>
+    </div>
+
+
+    <div class="card col-4">
+      <div class="route">
+        <div class="route-id" style="color:var(--blue)">B</div>
+        <div>
+          <h3>回放超时 overshoot</h3>
+          <div class="small">评分规则更新直接相关</div>
+        </div>
+      </div>
+
+      <div class="meter">
+        <div class="m-blue" style="width:92%"></div>
+      </div>
+
+      <p>
+        <strong>优先级：最高</strong>
+      </p>
+
+      <ul>
+        <li>以前是硬约束，现在变成期望值问题。</li>
+        <li>需要重新估计最优候选数。</li>
+        <li>不耗公榜枪，适合立即重算。</li>
+      </ul>
+    </div>
+
+
+    <div class="card col-4">
+      <div class="route">
+        <div class="route-id" style="color:var(--cyan)">E</div>
+        <div>
+          <h3>真实 private 护栏校准</h3>
+          <div class="small">所有路线的底座</div>
+        </div>
+      </div>
+
+      <div class="meter">
+        <div class="m-blue" style="width:90%"></div>
+      </div>
+
+      <p>
+        <strong>优先级：最高</strong>
+      </p>
+
+      <ul>
+        <li>直接利用自己历史提交日志。</li>
+        <li>能缩小 P003 假设空间。</li>
+        <li>帮助判断哪些公榜策略根本不值得做。</li>
+      </ul>
+    </div>
+
+
+    <div class="card col-6">
+      <div class="route">
+        <div class="route-id" style="color:var(--yellow)">C</div>
+        <div>
+          <h3>双谓词同 trace</h3>
+          <div class="small">Public 侧收益放大器</div>
+        </div>
+      </div>
+
+      <p>
+        <strong>优先级：第二梯队</strong>
+      </p>
+
+      <p>
+        这条的关键不是“理论 raw 更高”，而是验证：
+      </p>
+
+      <ul>
+        <li>两个谓词是否真的近似独立计分；</li>
+        <li>双任务是否显著降低成交率；</li>
+        <li>同 trace 内是否出现互相干扰；</li>
+        <li>是否导致 guardrail 通过率下降。</li>
+      </ul>
+
+      <p class="small">
+        如果最终只是增加 nominal raw，但实际成交率从 0.8 掉到 0.55，
+        那它未必优于稳定单谓词路线。
+      </p>
+    </div>
+
+
+    <div class="card col-6">
+      <div class="route">
+        <div class="route-id" style="color:var(--purple)">D</div>
+        <div>
+          <h3>F007 原生注入复测</h3>
+          <div class="small">需要真实模型探针</div>
+        </div>
+      </div>
+
+      <p>
+        <strong>优先级：最后</strong>
+      </p>
+
+      <p>
+        解析器修复后，历史上因格式解析失败而无效的路线值得重新试，
+        但它的价值依赖真实模型行为，本地无法证明成交。
+      </p>
+
+      <p>
+        所以应当只在：
+      </p>
+
+      <ul>
+        <li>A 已确认 multi-post 计分规则；</li>
+        <li>B 已算完候选容量；</li>
+        <li>E 已缩小真实 private 护栏分布；</li>
+        <li>C 没有给出足够收益；</li>
+      </ul>
+
+      <p>
+        之后再考虑消耗一次公榜枪位。
+      </p>
+    </div>
+
+  </div>
+
+
+  <h2>二、为什么先做 A + B + E</h2>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>路线</th>
+          <th>能否纯本地</th>
+          <th>是否改上限</th>
+          <th>是否影响后续设计</th>
+          <th>风险</th>
+          <th>建议</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td><strong>A multi-post</strong></td>
+          <td>是</td>
+          <td>极大</td>
+          <td>极大</td>
+          <td>低</td>
+          <td class="go">立即做</td>
+        </tr>
+
+        <tr>
+          <td><strong>B overshoot</strong></td>
+          <td>是</td>
+          <td>中到大</td>
+          <td>极大</td>
+          <td>低</td>
+          <td class="go">立即做</td>
+        </tr>
+
+        <tr>
+          <td><strong>E private 校准</strong></td>
+          <td>是</td>
+          <td>间接</td>
+          <td>极大</td>
+          <td>低</td>
+          <td class="go">立即做</td>
+        </tr>
+
+        <tr>
+          <td><strong>C dual</strong></td>
+          <td>大部分</td>
+          <td>大</td>
+          <td>中</td>
+          <td>中</td>
+          <td class="hold">A/E 后做</td>
+        </tr>
+
+        <tr>
+          <td><strong>D F007</strong></td>
+          <td>否</td>
+          <td>未知</td>
+          <td>低</td>
+          <td>高</td>
+          <td class="stop">先冻结</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <h2>三、A：Gemma multi-post 本地验证计划</h2>
+
+  <div class="grid">
+
+    <div class="card col-8 info">
+      <h3>A1. 需要先回答的不是“能不能成交”，而是评分器怎么计</h3>
+
+      <p>
+        本地实验重点应从模型生成能力中拆开，单独验证：
+      </p>
+
+      <ol>
+        <li>
+          一次 interact 中包含多个合法工具动作时，
+          <strong>是否全部进入 replay</strong>。
+        </li>
+
+        <li>
+          每个 post 是否独立形成计分事件。
+        </li>
+
+        <li>
+          相同 URL、相同域、不同 URL 的多 post，
+          cell 归属规则是否不同。
+        </li>
+
+        <li>
+          第 N 个 post 失败后：
+          <ul>
+            <li>后续 post 是否继续执行；</li>
+            <li>已经成功的 post 是否保留；</li>
+            <li>该 interact 是否整体作废。</li>
+          </ul>
+        </li>
+
+        <li>
+          replay 时间是否近似线性随 post 数增加。
+        </li>
+      </ol>
+    </div>
+
+
+    <div class="card col-4">
+      <h3>A2. 本地实验矩阵</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>K</th>
+            <th>情况</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr><td>1</td><td>基线</td></tr>
+          <tr><td>2</td><td>最重要</td></tr>
+          <tr><td>3</td><td>验证线性增长</td></tr>
+          <tr><td>4</td><td>中高负载</td></tr>
+          <tr><td>5</td><td>压力点</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+
+  <div class="card" style="margin-top:16px;">
+    <h3>A3. 不要只测“成功数”，要记录完整事件日志</h3>
+
+    <pre>
+run_id
+candidate_id
+model
+interaction_id
+post_index
+domain_id
+url_id
+parse_ok
+tool_call_ok
+replay_ok
+score_event_count
+predicate_count
+latency_ms
+cell_id
+error_type
+    </pre>
+
+    <p>
+      最重要的是把：
+      <strong>解析 → 执行 → 回放 → 计分</strong>
+      四个阶段拆开。
+    </p>
+
+    <p>
+      否则只看最终 raw，后面一旦出现多 post 少计 1 个，
+      根本分不清是解析器、执行器、replay 还是 cell 聚合造成的。
+    </p>
+  </div>
+
+
+  <div class="card decision" style="margin-top:16px;">
+    <h3>A 的 Go / No-Go 门槛</h3>
+
+    <p class="go">
+      GO：
+    </p>
+
+    <ul>
+      <li>K ≥ 2 时多个 post 确认独立进入 replay。</li>
+      <li>已完成 post 在后续错误时不会整体被抹掉。</li>
+      <li>计分事件数随 K 明显增加。</li>
+      <li>时间成本没有出现超线性爆炸。</li>
+    </ul>
+
+    <p class="stop">
+      NO-GO：
+    </p>
+
+    <ul>
+      <li>评分器只认每 interact 第一个动作。</li>
+      <li>整个 interact 仍被聚合成单一得分事件。</li>
+      <li>多动作导致 replay 时延呈严重超线性。</li>
+    </ul>
+  </div>
+
+
+  <h2>四、B：回放超时后的最优 overshoot</h2>
+
+  <div class="grid">
+
+    <div class="card col-6">
+      <h3>旧问题</h3>
+
+      <p>
+        以前 replay 超时意味着整份提交可能失去全部价值，
+        所以合理策略是：
+      </p>
+
+      <pre>
+候选数量 × 单候选平均时间
+&lt; Replay Budget × Safety Factor
+      </pre>
+
+      <p>
+        因此才会出现类似：
+      </p>
+
+      <pre>
+REPLAY_SAFE ≈ 0.996
+      </pre>
+
+      <p>
+        的极度保守配置。
+      </p>
+    </div>
+
+
+    <div class="card col-6">
+      <h3>新问题</h3>
+
+      <p>
+        如果超时只损失尾部候选，
+        优化目标变成：
+      </p>
+
+      <pre>
+最大化：
+
+E[总得分]
+=
+Σ 候选_i 的边际期望分
+×
+P(候选_i 能在超时前完成)
+      </pre>
+
+      <p>
+        这意味着：
+      </p>
+
+      <strong>
+        “刚好不超时”不一定再是最优。
+      </strong>
+    </div>
+
+  </div>
+
+
+  <div class="card" style="margin-top:16px;">
+    <h3>B1. 推荐直接测试 5 档容量</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>倍率</th>
+          <th>作用</th>
+          <th>解释</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>0.98×</td>
+          <td>新保守基线</td>
+          <td>验证旧策略</td>
+        </tr>
+
+        <tr>
+          <td>1.00×</td>
+          <td>预算贴边</td>
+          <td>比较点</td>
+        </tr>
+
+        <tr>
+          <td>1.05×</td>
+          <td>轻 overshoot</td>
+          <td>最可能先赢</td>
+        </tr>
+
+        <tr>
+          <td>1.10×</td>
+          <td>中 overshoot</td>
+          <td>测试收益拐点</td>
+        </tr>
+
+        <tr>
+          <td>1.20×</td>
+          <td>高 overshoot</td>
+          <td>压力测试</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <div class="card info" style="margin-top:16px;">
+    <h3>B2. 重点不是候选总数，而是尾部排序</h3>
+
+    <p>
+      新规则下候选顺序开始非常重要。
+    </p>
+
+    <p>
+      建议把候选按下面的指标排序：
+    </p>
+
+    <pre>
+priority_i
+=
+expected_score_i
+/
+expected_replay_time_i
+    </pre>
+
+    <p>
+      更稳健一点可以改成：
+    </p>
+
+    <pre>
+priority_i
+=
+expected_score_i
+× pass_probability_i
+/
+expected_replay_time_i
+    </pre>
+
+    <p>
+      如果再结合 E 路线校准出的真实护栏概率，
+      这个排序会比单纯按 raw score 排得更合理。
+    </p>
+  </div>
+
+
+  <div class="card decision" style="margin-top:16px;">
+    <h3>B 的最终输出不应该只有一个倍率</h3>
+
+    <p>
+      应输出一条曲线：
+    </p>
+
+    <pre>
+overshoot ratio
+→ expected score
+→ P(timeout)
+→ expected lost tail score
+→ p5 / p50 / p95 score
+    </pre>
+
+    <p>
+      最终选择：
+    </p>
+
+    <strong>
+      期望分最高且尾部风险仍可接受的倍率，
+      而不是“最不容易超时”的倍率。
+    </strong>
+  </div>
+
+
+  <h2>五、E：用历史提交日志校准真实 private</h2>
+
+  <div class="card">
+    <h3>E1. 这是整个新路线最重要的“现实校准层”</h3>
+
+    <p>
+      现在 P003 里如果仍存在多个关于 private guardrail 的假设，
+      那么先验过宽会导致：
+    </p>
+
+    <ul>
+      <li>Public 高分策略被高估；</li>
+      <li>private hedge 权重失真；</li>
+      <li>对编码、明文、email 等家族的判断过于模糊。</li>
+    </ul>
+
+    <p>
+      自己历史提交 Output 中的
+      <code>guardrail=private</code>
+      行就是最有价值的真实反馈。
+    </p>
+  </div>
+
+
+  <div class="grid" style="margin-top:16px;">
+
+    <div class="card col-6">
+      <h3>E2. 建议汇总成这张表</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Family</th>
+            <th>n</th>
+            <th>Pass</th>
+            <th>Pass Rate</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr>
+            <td>plain</td>
+            <td>...</td>
+            <td>...</td>
+            <td>...</td>
+          </tr>
+
+          <tr>
+            <td>encoded</td>
+            <td>...</td>
+            <td>...</td>
+            <td>...</td>
+          </tr>
+
+          <tr>
+            <td>email</td>
+            <td>...</td>
+            <td>...</td>
+            <td>...</td>
+          </tr>
+
+          <tr>
+            <td>dual</td>
+            <td>...</td>
+            <td>...</td>
+            <td>...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+
+    <div class="card col-6">
+      <h3>E3. 不要只看点估计</h3>
+
+      <p>
+        如果某种 family 历史样本很少，
+        只看：
+      </p>
+
+      <pre>
+pass_rate = pass / n
+      </pre>
+
+      <p>
+        很容易误判。
+      </p>
+
+      <p>
+        建议同时保留：
+      </p>
+
+      <ul>
+        <li>样本量 n；</li>
+        <li>Wilson / Beta 区间；</li>
+        <li>submission 时间；</li>
+        <li>模型；</li>
+        <li>guardrail 版本。</li>
+      </ul>
+    </div>
+
+  </div>
+
+
+  <div class="card decision" style="margin-top:16px;">
+    <h3>E 的真正价值</h3>
+
+    <p>
+      不是为了“预测 private 分数有多准”，
+      而是为了把下面这类宽假设：
+    </p>
+
+    <pre>
+private 对 A/B/C 三族都有可能放行
+    </pre>
+
+    <p>
+      缩成：
+    </p>
+
+    <pre>
+private 明显更接近 family X / family Y 的行为
+    </pre>
+
+    <p>
+      一旦这个空间缩小，
+      C 和 D 是否值得做都会更清楚。
+    </p>
+  </div>
+
+
+  <h2>六、C：双谓词同 trace 应怎么评估</h2>
+
+  <div class="grid">
+
+    <div class="card col-6">
+      <h3>名义收益</h3>
+
+      <p>
+        按你当前估计：
+      </p>
+
+      <pre>
+单谓词 raw ≈ 18
+双谓词 raw ≈ 22
+提升 ≈ +22%
+      </pre>
+
+      <p>
+        这本身有吸引力。
+      </p>
+    </div>
+
+
+    <div class="card col-6">
+      <h3>真实收益</h3>
+
+      <p>
+        真正应该比较：
+      </p>
+
+      <pre>
+EV_single
+=
+18 × P(single success)
+
+EV_dual
+=
+22 × P(dual success)
+      </pre>
+
+      <p>
+        所以 dual 不是只要能跑就赢。
+      </p>
+    </div>
+
+  </div>
+
+
+  <div class="card warn" style="margin-top:16px;">
+    <h3>C 的关键门槛</h3>
+
+    <p>
+      如果单谓词成功率是：
+    </p>
+
+    <pre>
+P_single = 0.90
+    </pre>
+
+    <p>
+      那 dual 至少需要：
+    </p>
+
+    <pre>
+22 × P_dual
+&gt;
+18 × 0.90
+    </pre>
+
+    <p>
+      即：
+    </p>
+
+    <pre>
+P_dual
+&gt;
+0.736
+    </pre>
+
+    <p>
+      所以只要 dual 成交率仍高于约 74%，
+      nominal 上就可能优于 90% 成交率的单谓词方案。
+    </p>
+  </div>
+
+
+  <div class="card">
+    <h3>C 的本地探针矩阵</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>实验</th>
+          <th>目的</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>single-A</td>
+          <td>单谓词基线</td>
+        </tr>
+
+        <tr>
+          <td>single-B</td>
+          <td>第二谓词基线</td>
+        </tr>
+
+        <tr>
+          <td>dual A→B</td>
+          <td>顺序 1</td>
+        </tr>
+
+        <tr>
+          <td>dual B→A</td>
+          <td>顺序 2</td>
+        </tr>
+
+        <tr>
+          <td>dual compact</td>
+          <td>最短结构</td>
+        </tr>
+
+        <tr>
+          <td>dual verbose</td>
+          <td>测试格式敏感性</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <h2>七、D：F007 为什么现在不要急</h2>
+
+  <div class="card danger">
+    <h3>先把它当“真实模型探针”，不是主线</h3>
+
+    <p>
+      它的优势是：
+    </p>
+
+    <ul>
+      <li>解析器更新可能解锁过去纯解析失败的路径；</li>
+      <li>selector 不命中即可自动回退；</li>
+      <li>架构级风险不大。</li>
+    </ul>
+
+    <p>
+      但缺点是：
+    </p>
+
+    <ul>
+      <li>本地无法确认真实模型是否采用该路径；</li>
+      <li>必须消耗公榜枪位；</li>
+      <li>当前 A/B/E 都还存在免费信息增益。</li>
+    </ul>
+
+    <p>
+      所以 D 应当是：
+    </p>
+
+    <strong>
+      “最后一个需要真实模型回答的问题”
+    </strong>
+
+    <p>
+      而不是今天第一件要做的事。
+    </p>
+  </div>
+
+
+  <h2>八、建议今天直接执行的顺序</h2>
+
+  <div class="card">
+    <div class="timeline">
+
+      <div class="step">
+        <h3>Step 1 — E：读历史 Output</h3>
+        <p>
+          时间成本最低，而且能立刻影响 B/C/D 的定价。
+        </p>
+      </div>
+
+      <div class="step">
+        <h3>Step 2 — A：跑 multi-post mock</h3>
+        <p>
+          先验证 K=1/2/3/4/5，
+          得出：
+          replay 数、计分数、cell、时延。
+        </p>
+      </div>
+
+      <div class="step">
+        <h3>Step 3 — B：重建 overshoot 曲线</h3>
+        <p>
+          用真实历史 replay 时间 + A 得到的新单候选时延，
+          重新算最优容量。
+        </p>
+      </div>
+
+      <div class="step">
+        <h3>Step 4 — C：接 dual 进 W1 探针池</h3>
+        <p>
+          跑 mock 三盐、replay judge、护栏族门禁，
+          测成交率下滑是否小于 raw 收益。
+        </p>
+      </div>
+
+      <div class="step">
+        <h3>Step 5 — D：只在必要时留一个公榜探针</h3>
+        <p>
+          如果 A/C 已经给出足够大的结构收益，
+          D 可以继续冻结。
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+
+  <h2>九、今天最该产出的 5 个文件</h2>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>文件</th>
+          <th>作用</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td class="mono">private_guardrail_calibration.csv</td>
+          <td>历史 private 行为汇总</td>
+        </tr>
+
+        <tr>
+          <td class="mono">multi_post_local_probe.json</td>
+          <td>K=1..5 的解析 / replay / cell 结果</td>
+        </tr>
+
+        <tr>
+          <td class="mono">replay_overshoot_curve.csv</td>
+          <td>0.98–1.20 倍候选容量的期望收益</td>
+        </tr>
+
+        <tr>
+          <td class="mono">dual_predicate_local_eval.csv</td>
+          <td>单谓词 vs 双谓词成交率与 raw 对比</td>
+        </tr>
+
+        <tr>
+          <td class="mono">new_routes_decision_v1.json</td>
+          <td>最终 go / hold / stop 决策</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <h2>十、最终决策树</h2>
+
+  <div class="card decision">
+    <pre>
+                    ┌─────────────────────┐
+                    │  E：private 校准   │
+                    └─────────┬───────────┘
+                              │
+                              ▼
+                    ┌─────────────────────┐
+                    │  A：multi-post 本地 │
+                    └─────────┬───────────┘
+                              │
+              multi-post 有结构性收益？
+                    │                 │
+                   否                是
+                    │                 │
+                    ▼                 ▼
+              保持旧吞吐       重算单候选成本
+                    │                 │
+                    └─────────┬───────┘
+                              ▼
+                    ┌─────────────────────┐
+                    │ B：overshoot 优化   │
+                    └─────────┬───────────┘
+                              ▼
+                    ┌─────────────────────┐
+                    │ C：dual 本地实验    │
+                    └─────────┬───────────┘
+                              │
+                 dual EV 是否明显更高？
+                    │                 │
+                   否                是
+                    │                 │
+                    ▼                 ▼
+              单谓词主线        dual public 主线
+                    │                 │
+                    └─────────┬───────┘
+                              ▼
+                    是否仍有未解释缺口？
+                    │                 │
+                   否                是
+                    │                 │
+                    ▼                 ▼
+                  收敛             D 公榜探针
+    </pre>
+  </div>
+
+
+  <h2>十一、我的最终建议</h2>
+
+  <div class="card decision">
+    <p class="score" style="color:var(--green)">
+      今天先做 A + B + E
+    </p>
+
+    <p>
+      而且我认为顺序上应该：
+    </p>
+
+    <ol>
+      <li>
+        <strong>E 先扫历史日志</strong>，
+        因为它最快，也会改变后续价值判断；
+      </li>
+
+      <li>
+        <strong>A 验证 multi-post 的真实计数规则</strong>；
+      </li>
+
+      <li>
+        <strong>B 用新 replay 规则重新做容量定价</strong>；
+      </li>
+
+      <li>
+        <strong>C 再判断双谓词是否值得占主线</strong>；
+      </li>
+
+      <li>
+        <strong>D 暂时冻结</strong>，
+        等所有免费信息都吃完再考虑公榜枪。
+      </li>
+    </ol>
+
+    <p>
+      这条线程从现在开始建议正式切成：
+    </p>
+
+    <pre>
+OLD:
+W1 单帖模板优化
+
+NEW:
+吞吐结构
++
+回放容量
++
+真实 guardrail 校准
++
+多谓词定价
+    </pre>
+
+    <p>
+      也就是说：
+    </p>
+
+    <strong>
+      不再问“哪个 prompt 再多 1 分”，
+      而是问“整个计分系统有没有因为官方更新而换了最优解”。
+    </strong>
+  </div>
+
+
+  <div class="footer">
+    新路线实验规划 v1.0 · 2026-08-08
+  </div>
+
+</div>
+</body>
+</html>

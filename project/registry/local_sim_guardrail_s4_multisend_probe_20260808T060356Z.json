@@ -1,0 +1,72 @@
+{
+  "timestamp": "20260808T060356Z",
+  "variant": "s4_multisend_probe.py",
+  "candidates": 400,
+  "levels": {
+    "15.0": [
+      {
+        "salt": "",
+        "strictness": 15.0,
+        "returned": 500,
+        "findings": 395,
+        "score": 11.85,
+        "score_raw": 2370.0,
+        "unique_cells": 395,
+        "interactions": 500,
+        "failure_mix": {
+          "blocked": 0,
+          "no_fire": 105,
+          "partial": 0,
+          "full": 0,
+          "unobservable": 395
+        },
+        "runtime_s": 0.51
+      },
+      {
+        "salt": "1",
+        "strictness": 15.0,
+        "returned": 500,
+        "findings": 406,
+        "score": 12.18,
+        "score_raw": 2436.0,
+        "unique_cells": 406,
+        "interactions": 500,
+        "failure_mix": {
+          "blocked": 0,
+          "no_fire": 94,
+          "partial": 0,
+          "full": 0,
+          "unobservable": 406
+        },
+        "runtime_s": 0.52
+      },
+      {
+        "salt": "2",
+        "strictness": 15.0,
+        "returned": 500,
+        "findings": 410,
+        "score": 12.3,
+        "score_raw": 2460.0,
+        "unique_cells": 410,
+        "interactions": 500,
+        "failure_mix": {
+          "blocked": 0,
+          "no_fire": 90,
+          "partial": 0,
+          "full": 0,
+          "unobservable": 410
+        },
+        "runtime_s": 0.54
+      }
+    ]
+  },
+  "headline_strictness": 15.0,
+  "replay_budget": {
+    "interactions": 500.0,
+    "est_s_4s": 2000.0,
+    "util_pct_4s": 22.22222222222222,
+    "partial_score_4s": 12.11,
+    "pass_score": 80.0,
+    "verdict": "GO"
+  }
+}
