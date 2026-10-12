@@ -6,6 +6,9 @@
 
 [English](#english) | [中文](#中文)
 
+> **开源与协作**：原创代码与文档采用 [MIT License](LICENSE)。欢迎通过 [Issue](https://github.com/hccccc01333/ai-agent-security-redteam/issues) 和 [Pull Request](https://github.com/hccccc01333/ai-agent-security-redteam/pulls) 参与。
+> 阅读 [贡献指南](CONTRIBUTING.md) 与 [复现说明](REPRODUCIBILITY.md)；竞赛/赛事数据及第三方资源不在此授权范围内。
+
 ---
 
 <a name="english"></a>
@@ -157,4 +160,4 @@ python project/scripts/smoke_test.py --budget-s 15 # 本地冒烟
 
 ## License
 
-MIT
+原创代码和文档采用 [MIT License](LICENSE)；第三方资源保留其各自权利与许可。
